@@ -20,6 +20,7 @@ public interface Listener
     public void accepted(SelectionKey key, SocketChannel sc);
 
     public ClientListener getClientConnection(SocketChannel sc, ServerSocketChannel ssc);
+
   }
 
   public static interface ClientListener extends Listener

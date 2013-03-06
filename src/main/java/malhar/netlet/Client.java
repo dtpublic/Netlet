@@ -18,9 +18,9 @@ import org.slf4j.LoggerFactory;
  */
 public abstract class Client implements ClientListener
 {
-  final ByteBuffer writeBuffer;
-  final CircularBuffer<Fragment> sendBuffer;
-  final CircularBuffer<Fragment> freeBuffer;
+  protected final ByteBuffer writeBuffer;
+  protected final CircularBuffer<Fragment> freeBuffer;
+  protected CircularBuffer<Fragment> sendBuffer;
 
   public Client(int writeBufferSize, int sendBufferSize)
   {
@@ -29,7 +29,7 @@ public abstract class Client implements ClientListener
 
   public Client()
   {
-    this(8 * 1024, 1024);
+    this(8 * 1 * 1024, 1024 * 1024);
   }
 
   public Client(ByteBuffer writeBuffer, int sendBufferSize)
@@ -42,7 +42,6 @@ public abstract class Client implements ClientListener
   @Override
   public void connected(SelectionKey key)
   {
-    key.interestOps(SelectionKey.OP_READ);
   }
 
   @Override
@@ -62,15 +61,14 @@ public abstract class Client implements ClientListener
   @Override
   public final void write(SelectionKey key) throws IOException
   {
-    logger.debug("call to write");
-    SocketChannel channel = (SocketChannel)key.channel();
-    int size;
-    if (!writeBuffer.hasRemaining() && (size = sendBuffer.size()) > 0) {
-      int remaining = writeBuffer.capacity();
-
+    /*
+     * at first when we enter this function, our buffer is in fill mode.
+     */
+    int remaining, size;
+    if ((size = sendBuffer.size()) > 0 && (remaining = writeBuffer.remaining()) > 0) {
       do {
         Fragment f = sendBuffer.peekUnsafe();
-        if (remaining < f.len) {
+        if (remaining <= f.len) {
           writeBuffer.put(f.array, f.offset, remaining);
           f.offset += remaining;
           f.len -= remaining;
@@ -78,29 +76,38 @@ public abstract class Client implements ClientListener
         }
         else {
           writeBuffer.put(f.array, f.offset, f.len);
-          freeBuffer.add(sendBuffer.pollUnsafe());
           remaining -= f.len;
+          freeBuffer.offer(sendBuffer.pollUnsafe());
         }
       }
       while (--size > 0);
-
-      writeBuffer.flip();
     }
 
-    while (writeBuffer.hasRemaining()) {
-      logger.debug("writing {} bytes", writeBuffer.remaining());
-      channel.write(writeBuffer);
-      if (writeBuffer.hasRemaining()) {
-        key.interestOps(SelectionKey.OP_WRITE);
+    /*
+     * switch to the read mode!
+     */
+    writeBuffer.flip();
+
+    SocketChannel channel = (SocketChannel)key.channel();
+    while ((remaining = writeBuffer.remaining()) > 0) {
+      remaining -= channel.write(writeBuffer);
+      if (remaining > 0) {
+        /*
+         * switch back to the fill mode.
+         */
+        writeBuffer.compact();
         return;
       }
-      else {
+      else if ((size = sendBuffer.size()) > 0) {
+        /*
+         * switch back to the write mode.
+         */
         writeBuffer.clear();
-        int remaining = writeBuffer.capacity();
 
-        while (!sendBuffer.isEmpty()) {
+        remaining = writeBuffer.capacity();
+        do {
           Fragment f = sendBuffer.peekUnsafe();
-          if (remaining < f.len) {
+          if (remaining <= f.len) {
             writeBuffer.put(f.array, f.offset, remaining);
             f.offset += remaining;
             f.len -= remaining;
@@ -108,14 +115,23 @@ public abstract class Client implements ClientListener
           }
           else {
             writeBuffer.put(f.array, f.offset, f.len);
-            freeBuffer.add(sendBuffer.pollUnsafe());
             remaining -= f.len;
+            freeBuffer.offer(sendBuffer.pollUnsafe());
           }
         }
+        while (--size > 0);
 
+        /*
+         * switch to the read mode.
+         */
         writeBuffer.flip();
       }
     }
+
+    /*
+     * switch back to fill mode.
+     */
+    writeBuffer.clear();
   }
 
   public void send(byte[] array, int offset, int len) throws InterruptedException
@@ -140,9 +156,44 @@ public abstract class Client implements ClientListener
   @Override
   public void disconnected(SelectionKey key)
   {
+    Client.this.sendBuffer = sendBuffer.getWhitehole("Client already disconnected!");
+    key.attach(new ClientListener()
+    {
+      @Override
+      public void handleException(Exception cce, EventLoop el)
+      {
+        Client.this.handleException(cce, el);
+      }
+
+      @Override
+      public void connected(SelectionKey key)
+      {
+      }
+
+      @Override
+      public void disconnected(SelectionKey key)
+      {
+      }
+
+      @Override
+      public void read(SelectionKey key) throws IOException
+      {
+      }
+
+      @Override
+      public void write(SelectionKey key) throws IOException
+      {
+        Client.this.write(key);
+        if (sendBuffer.isEmpty() && writeBuffer.position() == 0) {
+          key.cancel();
+        }
+      }
+
+    });
+    key.interestOps(SelectionKey.OP_WRITE);
   }
 
-  private static class Fragment
+  protected static class Fragment
   {
     byte[] array;
     int offset;

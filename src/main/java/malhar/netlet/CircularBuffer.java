@@ -8,6 +8,7 @@ package malhar.netlet;
  *
  * @author Chetan Narsude <chetan@malhar-inc.com>
  */
+import static java.lang.Thread.sleep;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
@@ -19,15 +20,16 @@ import org.slf4j.LoggerFactory;
  * Provides a premium implementation of circular buffer<p>
  * <br>
  *
+ * @param <T> type of the objects in this buffer.
  */
 public class CircularBuffer<T> implements UnsafeBlockingQueue<T>
 {
   private static final Logger logger = LoggerFactory.getLogger(CircularBuffer.class);
   private final T[] buffer;
   private final int buffermask;
-  private volatile long tail;
-  private volatile long head;
   private final int spinMillis;
+  protected volatile long tail;
+  protected volatile long head;
 
   /**
    *
@@ -50,6 +52,13 @@ public class CircularBuffer<T> implements UnsafeBlockingQueue<T>
     buffermask = i - 1;
 
     spinMillis = spin;
+  }
+
+  private CircularBuffer(T[] buffer, int buffermask, int spinMillis)
+  {
+    this.buffer = buffer;
+    this.buffermask = buffermask;
+    this.spinMillis = spinMillis;
   }
 
   /**
@@ -138,7 +147,7 @@ public class CircularBuffer<T> implements UnsafeBlockingQueue<T>
   }
 
   @Override
-  public final boolean offer(T e)
+  public boolean offer(T e)
   {
     if (head - tail <= buffermask) {
       buffer[(int)(head & buffermask)] = e;
@@ -354,6 +363,7 @@ public class CircularBuffer<T> implements UnsafeBlockingQueue<T>
   }
 
   @Override
+  @SuppressWarnings("unchecked")
   public <T> T[] toArray(T[] a)
   {
     int count = (int)(head - tail);
@@ -405,6 +415,58 @@ public class CircularBuffer<T> implements UnsafeBlockingQueue<T>
   public T peekUnsafe()
   {
     return buffer[(int)(tail & buffermask)];
+  }
+
+  public CircularBuffer<T> getWhitehole(final String exceptionMessage)
+  {
+    CircularBuffer<T> cb = new CircularBuffer<T>(buffer, buffermask, spinMillis)
+    {
+      @Override
+      public boolean add(T e)
+      {
+        throw new IllegalStateException(exceptionMessage);
+      }
+
+      @Override
+      @SuppressWarnings("SleepWhileInLoop")
+      public void put(T e) throws InterruptedException
+      {
+        while (true) {
+          sleep(spinMillis);
+        }
+      }
+
+      @Override
+      public boolean offer(T e)
+      {
+        return false;
+      }
+
+      @Override
+      public boolean offer(T e, long timeout, TimeUnit unit) throws InterruptedException
+      {
+        long millis = unit.toMillis(timeout);
+        sleep(millis);
+        return false;
+      }
+
+      @Override
+      public int remainingCapacity()
+      {
+        return 0;
+      }
+
+      @Override
+      public boolean addAll(Collection<? extends T> c)
+      {
+        throw new IllegalStateException(exceptionMessage);
+      }
+
+    };
+    cb.head = head;
+    cb.tail = tail;
+
+    return cb;
   }
 
 }

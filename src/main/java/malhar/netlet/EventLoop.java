@@ -27,6 +27,7 @@ public class EventLoop implements Runnable
   public final String id;
   private Selector selector;
   private Thread eventThread;
+  private final Collection<SelectionKey> disconnected = new ArrayList<SelectionKey>();
   private final Collection<Runnable> tasks = new ArrayList<Runnable>();
 
   public EventLoop(String id) throws IOException
@@ -41,20 +42,21 @@ public class EventLoop implements Runnable
   {
     eventThread = Thread.currentThread();
 
-    int ready;
+    int size;
     SocketChannel sc;
     ClientListener l;
 
     try {
       while (true) {
-        if ((ready = selector.selectNow()) == 0) {
+        if ((size = selector.selectNow()) == 0) {
 //          for (SelectionKey sk : selector.keys()) {
 //            logger.debug("{} for {}", sk.channel(), Integer.toBinaryString(sk.interestOps()));
 //          }
         }
         else {
-          for (SelectionKey sk : selector.selectedKeys()) {
-            logger.debug("sk = {} readyOps = {}", sk, Integer.toBinaryString(sk.readyOps()));
+          Set<SelectionKey> selectedKeys = selector.selectedKeys();
+          for (SelectionKey sk : selectedKeys) {
+//            logger.debug("sk = {} readyOps = {}", sk, Integer.toBinaryString(sk.readyOps()));
             if (!sk.isValid()) {
               continue;
             }
@@ -109,25 +111,32 @@ public class EventLoop implements Runnable
                 break;
             }
           }
+          selectedKeys.clear();
         }
 
-        if (tasks.isEmpty()) {
-          if (ready == 0) {
-            try {
-              sleep(5);
-            }
-            catch (InterruptedException ex) {
-              logger.debug("Exiting as the loop is interrupted.", ex);
-            }
-          }
-        }
-        else {
+        if (!tasks.isEmpty()) {
           synchronized (tasks) {
             Iterator<Runnable> i = tasks.iterator();
             while (i.hasNext()) {
               Runnable r = i.next();
               i.remove();
               r.run();
+            }
+          }
+        }
+
+        if (!disconnected.isEmpty()) {
+          Iterator<SelectionKey> keys = disconnected.iterator();
+          while (keys.hasNext()) {
+            SelectionKey key = keys.next();
+            if (!key.isValid()) {
+              keys.remove();
+              try {
+                key.channel().close();
+              }
+              catch (IOException io) {
+                ((Listener)key.attachment()).handleException(io, EventLoop.this);
+              }
             }
           }
         }
@@ -255,24 +264,28 @@ public class EventLoop implements Runnable
       @Override
       public void run()
       {
-        try {
-          for (SelectionKey key : selector.keys()) {
-            if (key.attachment() == l) {
-              key.channel().close();
-              key.cancel();
-              l.disconnected(key);
+        for (SelectionKey key : selector.keys()) {
+          if (key.attachment() == l) {
+            l.disconnected(key);
+            if (key.isValid()) {
+              disconnected.add(key);
+            }
+            else {
+              try {
+                key.channel().close();
+              }
+              catch (IOException io) {
+                l.handleException(io, EventLoop.this);
+              }
             }
           }
-        }
-        catch (IOException io) {
-          l.handleException(io, EventLoop.this);
         }
       }
 
     });
   }
 
-  public final void accept(final String host, final int port, final Listener l)
+  public final void start(final String host, final int port, final Listener l)
   {
     submit(new Runnable()
     {
@@ -300,8 +313,6 @@ public class EventLoop implements Runnable
       }
 
     });
-
-
   }
 
   private static final Logger logger = LoggerFactory.getLogger(EventLoop.class);
