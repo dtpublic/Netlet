@@ -17,6 +17,10 @@ public interface Listener
 
   public static interface ServerListener extends Listener
   {
+    public void started(SelectionKey key);
+
+    public void stopped(SelectionKey key);
+
     public void accepted(SelectionKey key, SocketChannel sc);
 
     public ClientListener getClientConnection(SocketChannel sc, ServerSocketChannel ssc);

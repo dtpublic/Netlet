@@ -4,6 +4,8 @@
  */
 package malhar.netlet;
 
+import java.io.IOException;
+import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
@@ -17,6 +19,25 @@ import org.slf4j.LoggerFactory;
  */
 public abstract class Server implements ServerListener
 {
+  SocketAddress boundAddress;
+
+  @Override
+  public void started(SelectionKey key)
+  {
+    ServerSocketChannel ssc = (ServerSocketChannel)key.channel();
+    try {
+      boundAddress = ssc.getLocalAddress();
+    }
+    catch (IOException io) {
+      throw new RuntimeException(io);
+    }
+  }
+
+  @Override
+  public void stopped(SelectionKey key)
+  {
+  }
+
   @Override
   public void accepted(SelectionKey key, SocketChannel sc)
   {
@@ -26,6 +47,11 @@ public abstract class Server implements ServerListener
   public void handleException(Exception cce, EventLoop el)
   {
     logger.debug("", cce);
+  }
+
+  public SocketAddress getServerAddress()
+  {
+    return boundAddress;
   }
 
   private static final Logger logger = LoggerFactory.getLogger(Server.class);

@@ -285,7 +285,7 @@ public class EventLoop implements Runnable
     });
   }
 
-  public final void start(final String host, final int port, final Listener l)
+  public final void start(final String host, final int port, final ServerListener l)
   {
     submit(new Runnable()
     {
@@ -298,6 +298,7 @@ public class EventLoop implements Runnable
           channel.configureBlocking(false);
           channel.bind(host == null ? new InetSocketAddress(port) : new InetSocketAddress(host, port));
           register(channel, SelectionKey.OP_ACCEPT, l);
+          l.started(channel.keyFor(selector));
         }
         catch (IOException io) {
           l.handleException(io, EventLoop.this);
@@ -307,6 +308,31 @@ public class EventLoop implements Runnable
             }
             catch (IOException ie) {
               l.handleException(ie, EventLoop.this);
+            }
+          }
+        }
+      }
+
+    });
+  }
+
+  public final void stop(final ServerListener l)
+  {
+    submit(new Runnable()
+    {
+      @Override
+      public void run()
+      {
+        for (SelectionKey key : selector.keys()) {
+          if (key.attachment() == l) {
+            try {
+              key.channel().close();
+            }
+            catch (IOException io) {
+              l.handleException(io, EventLoop.this);
+            }
+            if (key.isValid()) {
+              key.cancel();
             }
           }
         }
