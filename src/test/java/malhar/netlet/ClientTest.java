@@ -8,8 +8,12 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 import java.nio.channels.SelectionKey;
+import java.util.Arrays;
 import malhar.netlet.ServerTest.ServerImpl;
+import org.junit.Assert;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -24,9 +28,7 @@ public class ClientTest
   public class ClientImpl extends Client
   {
     public static final int BUFFER_CAPACITY = 8 * 1024 + 1;
-    ByteBuffer outboundBuffer = ByteBuffer.allocate(BUFFER_CAPACITY);
     ByteBuffer buffer = ByteBuffer.allocate(BUFFER_CAPACITY);
-    private SelectionKey key;
     boolean read;
 
     @Override
@@ -35,28 +37,8 @@ public class ClientTest
       return buffer;
     }
 
-    @Override
-    public void connected(SelectionKey key)
+    public void connected1(SelectionKey key)
     {
-      LongBuffer lb = outboundBuffer.asLongBuffer();
-      for (int i = 0; i < lb.capacity(); i++) {
-        lb.put(i);
-      }
-
-      boolean odd = false;
-      while (outboundBuffer.hasRemaining()) {
-        outboundBuffer.put((byte)(odd ? 0x55 : 0xaa));
-      }
-
-      try {
-        send(outboundBuffer.array(), 0, outboundBuffer.position());
-      }
-      catch (InterruptedException ie) {
-        throw new RuntimeException(ie);
-      }
-
-      key.interestOps(SelectionKey.OP_WRITE | SelectionKey.OP_READ);
-      this.key = key;
     }
 
     @Override
@@ -67,14 +49,19 @@ public class ClientTest
         read = true;
 
         int i = 0;
-        long[] arrays = buffer.asLongBuffer().array();
-        assert (arrays.length == BUFFER_CAPACITY / 8);
-        while (i < arrays.length) {
-          assert (i == arrays[i]);
-          i++;
+        LongBuffer lb = buffer.asLongBuffer();
+        while (lb.hasRemaining()) {
+          Assert.assertEquals(i++, lb.get());
         }
+
+        assert(i == BUFFER_CAPACITY / 8);
       }
     }
+
+  }
+
+  public void sendData()
+  {
 
   }
 
@@ -90,12 +77,35 @@ public class ClientTest
     el.start("localhost", 5033, si);
     el.connect("localhost", 5033, ci);
 
-    Thread.sleep(10000);
+    ByteBuffer outboundBuffer = ByteBuffer.allocate(ClientImpl.BUFFER_CAPACITY);
+    LongBuffer lb = outboundBuffer.asLongBuffer();
+
+    int i = 0;
+    while (lb.hasRemaining()) {
+      lb.put(i++);
+    }
+
+    boolean odd = false;
+    outboundBuffer.position(i * 8);
+    while (outboundBuffer.hasRemaining()) {
+      outboundBuffer.put((byte)(odd ? 0x55 : 0xaa));
+      odd = !odd;
+    }
+
+    try {
+      ci.send(outboundBuffer.array(), 0, outboundBuffer.position());
+    }
+    catch (InterruptedException ie) {
+      throw new RuntimeException(ie);
+    }
+
+    Thread.sleep(10);
 
     el.disconnect(ci);
     el.stop(si);
 
-    assert(ci.read);
+    assert (ci.read);
   }
 
+  private static final Logger logger = LoggerFactory.getLogger(ClientTest.class);
 }

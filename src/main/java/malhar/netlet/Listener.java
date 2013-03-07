@@ -21,7 +21,7 @@ public interface Listener
 
     public void stopped(SelectionKey key);
 
-    public void accepted(SelectionKey key, SocketChannel sc);
+    public void accepted(SocketChannel sc);
 
     public ClientListener getClientConnection(SocketChannel sc, ServerSocketChannel ssc);
 
@@ -33,9 +33,9 @@ public interface Listener
 
     public void disconnected(SelectionKey key);
 
-    public void read(SelectionKey key) throws IOException;
+    public void read() throws IOException;
 
-    public void write(SelectionKey key) throws IOException;
+    public void write() throws IOException;
 
   }
 

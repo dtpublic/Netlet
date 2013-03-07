@@ -21,6 +21,8 @@ public abstract class Client implements ClientListener
   protected final ByteBuffer writeBuffer;
   protected final CircularBuffer<Fragment> freeBuffer;
   protected CircularBuffer<Fragment> sendBuffer;
+  protected boolean write = true;
+  private SelectionKey key;
 
   public Client(int writeBufferSize, int sendBufferSize)
   {
@@ -42,10 +44,12 @@ public abstract class Client implements ClientListener
   @Override
   public void connected(SelectionKey key)
   {
+    this.key = key;
+    key.interestOps(SelectionKey.OP_READ | SelectionKey.OP_WRITE);
   }
 
   @Override
-  public final void read(SelectionKey key) throws IOException
+  public final void read() throws IOException
   {
     SocketChannel channel = (SocketChannel)key.channel();
     int read;
@@ -59,7 +63,7 @@ public abstract class Client implements ClientListener
   }
 
   @Override
-  public final void write(SelectionKey key) throws IOException
+  public final void write() throws IOException
   {
     /*
      * at first when we enter this function, our buffer is in fill mode.
@@ -132,6 +136,12 @@ public abstract class Client implements ClientListener
      * switch back to fill mode.
      */
     writeBuffer.clear();
+    synchronized (this) {
+      if (sendBuffer.isEmpty()) {
+        key.interestOps(key.interestOps() & ~SelectionKey.OP_WRITE);
+        write = false;
+      }
+    }
   }
 
   public void send(byte[] array, int offset, int len) throws InterruptedException
@@ -141,6 +151,13 @@ public abstract class Client implements ClientListener
     f.offset = offset;
     f.len = len;
     sendBuffer.put(f);
+
+    synchronized (this) {
+      if (!write) {
+        key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
+        write = true;
+      }
+    }
   }
 
   @Override
@@ -176,16 +193,16 @@ public abstract class Client implements ClientListener
       }
 
       @Override
-      public void read(SelectionKey key) throws IOException
+      public void read() throws IOException
       {
       }
 
       @Override
-      public void write(SelectionKey key) throws IOException
+      public void write() throws IOException
       {
-        Client.this.write(key);
+        Client.this.write();
         if (sendBuffer.isEmpty() && writeBuffer.position() == 0) {
-          key.cancel();
+          Client.this.key.cancel();
         }
       }
 

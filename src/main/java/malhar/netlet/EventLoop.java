@@ -5,7 +5,6 @@
 package malhar.netlet;
 
 import java.io.IOException;
-import static java.lang.Thread.sleep;
 import java.net.InetSocketAddress;
 import java.nio.channels.*;
 import java.nio.channels.spi.AbstractSelectableChannel;
@@ -67,13 +66,13 @@ public class EventLoop implements Runnable
                 sc = ssc.accept();
                 sc.configureBlocking(false);
                 ServerListener sl = (ServerListener)sk.attachment();
-                sl.accepted(sk, sc);
+                sl.accepted(sc);
                 /*
                  * now lets pretend that the client connection was also connected due to acceptance.
                  */
                 l = sl.getClientConnection(sc, (ServerSocketChannel)sk.channel());
                 register(sc, SelectionKey.OP_READ, l);
-                l.connected(sk);
+                l.connected(sc.keyFor(selector));
                 break;
 
               case SelectionKey.OP_CONNECT:
@@ -82,32 +81,32 @@ public class EventLoop implements Runnable
                 break;
 
               case SelectionKey.OP_READ:
-                ((ClientListener)sk.attachment()).read(sk);
+                ((ClientListener)sk.attachment()).read();
                 break;
 
               case SelectionKey.OP_WRITE:
-                ((ClientListener)sk.attachment()).write(sk);
+                ((ClientListener)sk.attachment()).write();
                 break;
 
               case SelectionKey.OP_READ | SelectionKey.OP_WRITE:
-                (l = (ClientListener)sk.attachment()).read(sk);
-                l.write(sk);
+                (l = (ClientListener)sk.attachment()).read();
+                l.write();
                 break;
 
               case SelectionKey.OP_READ | SelectionKey.OP_WRITE | SelectionKey.OP_CONNECT:
                 (l = (ClientListener)sk.attachment()).connected(sk);
-                l.read(sk);
-                l.write(sk);
+                l.read();
+                l.write();
                 break;
 
               case SelectionKey.OP_READ | SelectionKey.OP_CONNECT:
                 (l = (ClientListener)sk.attachment()).connected(sk);
-                l.read(sk);
+                l.read();
                 break;
 
               case SelectionKey.OP_WRITE | SelectionKey.OP_CONNECT:
                 (l = (ClientListener)sk.attachment()).connected(sk);
-                l.write(sk);
+                l.write();
                 break;
             }
           }

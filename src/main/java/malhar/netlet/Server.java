@@ -39,7 +39,7 @@ public abstract class Server implements ServerListener
   }
 
   @Override
-  public void accepted(SelectionKey key, SocketChannel sc)
+  public void accepted(SocketChannel sc)
   {
   }
 

@@ -34,7 +34,6 @@ public class ServerTest
   static class EchoClient extends Client
   {
     ByteBuffer buffer = ByteBuffer.allocate(1024 * 4);
-    SelectionKey key;
 
     @Override
     public ByteBuffer buffer()
@@ -44,24 +43,12 @@ public class ServerTest
     }
 
     @Override
-    public void connected(SelectionKey key)
-    {
-      super.connected(key); //To change body of generated methods, choose Tools | Templates.
-      this.key = key;
-    }
-
-    @Override
     public void read(int len)
     {
-      logger.debug("echo client read {} bytes", len);
       byte[] array = new byte[len];
       System.arraycopy(buffer.array(), 0, array, 0, len);
       try {
         send(array, 0, len);
-        int interest = key.interestOps();
-        if ((interest & SelectionKey.OP_WRITE) == 0) {
-          key.interestOps(interest & SelectionKey.OP_WRITE);
-        }
       }
       catch (InterruptedException ie) {
         throw new RuntimeException(ie);
