@@ -144,6 +144,11 @@ public abstract class Client implements ClientListener
     }
   }
 
+  public void send(byte[] array) throws InterruptedException
+  {
+    send(array, 0, array.length);
+  }
+
   public void send(byte[] array, int offset, int len) throws InterruptedException
   {
     Fragment f = freeBuffer.isEmpty() ? new Fragment() : freeBuffer.pollUnsafe();
