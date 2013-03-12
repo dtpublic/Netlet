@@ -24,6 +24,8 @@ import org.slf4j.LoggerFactory;
 public class EventLoop implements Runnable
 {
   public final String id;
+  private boolean alive;
+  private boolean executingTasks;
   private Selector selector;
   private Thread eventThread;
   private final Collection<SelectionKey> disconnected = new ArrayList<SelectionKey>();
@@ -35,27 +37,42 @@ public class EventLoop implements Runnable
     selector = Selector.open();
   }
 
+  public void start()
+  {
+    new Thread(this, id).start();
+  }
+
+  public void stop()
+  {
+    submit(new Runnable()
+    {
+      @Override
+      public void run()
+      {
+        alive = false;
+      }
+
+    });
+  }
+
   @Override
   @SuppressWarnings("SleepWhileInLoop")
   public void run()
   {
+    alive = true;
     eventThread = Thread.currentThread();
 
-    int size;
     SocketChannel sc;
     ClientListener l;
+    boolean wait = true;
 
     try {
-      while (true) {
-        if ((size = selector.selectNow()) == 0) {
-//          for (SelectionKey sk : selector.keys()) {
-//            logger.debug("{} for {}", sk.channel(), Integer.toBinaryString(sk.interestOps()));
-//          }
-        }
-        else {
+      do {
+        if (selector.selectNow() > 0) {
+          wait = false;
           Set<SelectionKey> selectedKeys = selector.selectedKeys();
           for (SelectionKey sk : selectedKeys) {
-//            logger.debug("sk = {} readyOps = {}", sk, Integer.toBinaryString(sk.readyOps()));
+            //logger.debug("sk = {} readyOps = {}", sk.attachment(), Integer.toBinaryString(sk.readyOps()));
             if (!sk.isValid()) {
               continue;
             }
@@ -114,17 +131,22 @@ public class EventLoop implements Runnable
         }
 
         if (!tasks.isEmpty()) {
+          wait = false;
+          logger.debug("found {} tasks", tasks.size());
           synchronized (tasks) {
             Iterator<Runnable> i = tasks.iterator();
             while (i.hasNext()) {
               Runnable r = i.next();
-              i.remove();
+              logger.debug("executing task {}", r);
               r.run();
             }
+            tasks.clear();
           }
         }
 
         if (!disconnected.isEmpty()) {
+          wait = false;
+          logger.debug("handling {} disconenct requests", disconnected.size());
           Iterator<SelectionKey> keys = disconnected.iterator();
           while (keys.hasNext()) {
             SelectionKey key = keys.next();
@@ -139,7 +161,18 @@ public class EventLoop implements Runnable
             }
           }
         }
+
+        if (wait) {
+          Thread.sleep(5);
+        }
+        else {
+          wait = true;
+        }
       }
+      while (alive);
+    }
+    catch (InterruptedException ie) {
+      throw new RuntimeException("Interrupted!", ie);
     }
     catch (IOException io) {
       throw new RuntimeException("Selector Failed!", io.getCause());
@@ -149,9 +182,11 @@ public class EventLoop implements Runnable
   public void submit(Runnable r)
   {
     if (eventThread == Thread.currentThread()) {
+      logger.debug("executing task immediately {}", r);
       r.run();
     }
     else {
+      logger.debug("submitted task {}", r);
       synchronized (tasks) {
         tasks.add(r);
       }
@@ -199,7 +234,7 @@ public class EventLoop implements Runnable
     });
   }
 
-  public void deregister(final SelectableChannel c)
+  public void unregister(final SelectableChannel c)
   {
     submit(new Runnable()
     {
@@ -226,7 +261,7 @@ public class EventLoop implements Runnable
     register((AbstractSelectableChannel)channel, ops, l);
   }
 
-  public final void connect(final String host, final int port, final Listener l)
+  public final void connect(final InetSocketAddress address, final Listener l)
   {
     submit(new Runnable()
     {
@@ -237,7 +272,7 @@ public class EventLoop implements Runnable
         try {
           channel = SocketChannel.open();
           channel.configureBlocking(false);
-          channel.connect(host == null ? new InetSocketAddress(port) : new InetSocketAddress(host, port));
+          channel.connect(address);
           register(channel, SelectionKey.OP_CONNECT, l);
         }
         catch (IOException ie) {

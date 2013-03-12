@@ -5,6 +5,7 @@
 package malhar.netlet;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 import java.nio.channels.SelectionKey;
@@ -75,7 +76,7 @@ public class ClientTest
     new Thread(el).start();
 
     el.start("localhost", 5033, si);
-    el.connect("localhost", 5033, ci);
+    el.connect(new InetSocketAddress("localhost", 5033), ci);
 
     ByteBuffer outboundBuffer = ByteBuffer.allocate(ClientImpl.BUFFER_CAPACITY);
     LongBuffer lb = outboundBuffer.asLongBuffer();
@@ -99,7 +100,7 @@ public class ClientTest
       throw new RuntimeException(ie);
     }
 
-    Thread.sleep(10);
+    Thread.sleep(25);
 
     el.disconnect(ci);
     el.stop(si);
