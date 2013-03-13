@@ -22,11 +22,10 @@ public abstract class Server implements ServerListener
   SocketAddress boundAddress;
 
   @Override
-  public void started(SelectionKey key)
+  public void registered(SelectionKey key)
   {
-    ServerSocketChannel ssc = (ServerSocketChannel)key.channel();
     try {
-      boundAddress = ssc.getLocalAddress();
+      boundAddress = ((ServerSocketChannel)key.channel()).getLocalAddress();
     }
     catch (IOException io) {
       throw new RuntimeException(io);
@@ -34,17 +33,12 @@ public abstract class Server implements ServerListener
   }
 
   @Override
-  public void stopped(SelectionKey key)
+  public void unregistered(SelectionKey key)
   {
   }
 
   @Override
-  public void accepted(SocketChannel sc)
-  {
-  }
-
-  @Override
-  public void handleException(Exception cce, EventLoop el)
+  public void handleException(Exception cce, DefaultEventLoop el)
   {
     logger.debug("", cce);
   }

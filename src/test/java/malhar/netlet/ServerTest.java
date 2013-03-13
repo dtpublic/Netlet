@@ -29,6 +29,12 @@ public class ServerTest
       return new EchoClient();
     }
 
+    @Override
+    public String toString()
+    {
+      return "ServerImpl{" + '}';
+    }
+
   }
 
   static class EchoClient extends Client
@@ -40,6 +46,12 @@ public class ServerTest
     {
       buffer.clear();
       return buffer;
+    }
+
+    @Override
+    public String toString()
+    {
+      return "EchoClient{" + "buffer=" + buffer + '}';
     }
 
     @Override

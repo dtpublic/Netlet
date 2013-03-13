@@ -5,11 +5,11 @@
 package malhar.netlet;
 
 import java.io.IOException;
+import static java.lang.Thread.sleep;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 import java.nio.channels.SelectionKey;
-import java.util.Arrays;
 import malhar.netlet.ServerTest.ServerImpl;
 import org.junit.Assert;
 import org.junit.Test;
@@ -26,6 +26,12 @@ public class ClientTest
   {
   }
 
+  @Override
+  public String toString()
+  {
+    return "ClientTest{" + '}';
+  }
+
   public class ClientImpl extends Client
   {
     public static final int BUFFER_CAPACITY = 8 * 1024 + 1;
@@ -33,13 +39,15 @@ public class ClientTest
     boolean read;
 
     @Override
+    public String toString()
+    {
+      return "ClientImpl{" + "buffer=" + buffer + ", read=" + read + '}';
+    }
+
+    @Override
     public ByteBuffer buffer()
     {
       return buffer;
-    }
-
-    public void connected1(SelectionKey key)
-    {
     }
 
     @Override
@@ -72,7 +80,7 @@ public class ClientTest
     ServerImpl si = new ServerImpl();
     ClientImpl ci = new ClientImpl();
 
-    EventLoop el = new EventLoop("test");
+    DefaultEventLoop el = new DefaultEventLoop("test");
     new Thread(el).start();
 
     el.start("localhost", 5033, si);
@@ -100,7 +108,7 @@ public class ClientTest
       throw new RuntimeException(ie);
     }
 
-    Thread.sleep(25);
+    sleep(25);
 
     el.disconnect(ci);
     el.stop(si);

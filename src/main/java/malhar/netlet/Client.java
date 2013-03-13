@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import java.util.Arrays;
 import malhar.netlet.Listener.ClientListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,7 +23,12 @@ public abstract class Client implements ClientListener
   protected final CircularBuffer<Fragment> freeBuffer;
   protected CircularBuffer<Fragment> sendBuffer;
   protected boolean write = true;
-  private SelectionKey key;
+  protected SelectionKey key;
+
+  public SelectionKey getKey()
+  {
+    return key;
+  }
 
   public Client(int writeBufferSize, int sendBufferSize)
   {
@@ -42,10 +48,10 @@ public abstract class Client implements ClientListener
   }
 
   @Override
-  public void connected(SelectionKey key)
+  public void registered(SelectionKey key)
   {
     this.key = key;
-    key.interestOps(SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+    logger.debug("here in registered with listener = {} and interestOps = {}", key.attachment(), key.interestOps());
   }
 
   @Override
@@ -57,7 +63,7 @@ public abstract class Client implements ClientListener
       this.read(read);
     }
     else if (read == -1) {
-      disconnected(key);
+      unregistered(key);
       channel.close();
     }
   }
@@ -151,6 +157,7 @@ public abstract class Client implements ClientListener
 
   public void send(byte[] array, int offset, int len) throws InterruptedException
   {
+    //logger.debug("sending {}", Arrays.toString(Arrays.copyOfRange(array, offset, offset+len)));
     Fragment f = freeBuffer.isEmpty() ? new Fragment() : freeBuffer.pollUnsafe();
     f.array = array;
     f.offset = offset;
@@ -166,7 +173,7 @@ public abstract class Client implements ClientListener
   }
 
   @Override
-  public void handleException(Exception cce, EventLoop el)
+  public void handleException(Exception cce, DefaultEventLoop el)
   {
     logger.debug("", cce);
   }
@@ -176,24 +183,24 @@ public abstract class Client implements ClientListener
   public abstract void read(int len);
 
   @Override
-  public void disconnected(SelectionKey key)
+  public void unregistered(SelectionKey key)
   {
     Client.this.sendBuffer = sendBuffer.getWhitehole("Client already disconnected!");
     key.attach(new ClientListener()
     {
       @Override
-      public void handleException(Exception cce, EventLoop el)
+      public void handleException(Exception cce, DefaultEventLoop el)
       {
         Client.this.handleException(cce, el);
       }
 
       @Override
-      public void connected(SelectionKey key)
+      public void registered(SelectionKey key)
       {
       }
 
       @Override
-      public void disconnected(SelectionKey key)
+      public void unregistered(SelectionKey key)
       {
       }
 
