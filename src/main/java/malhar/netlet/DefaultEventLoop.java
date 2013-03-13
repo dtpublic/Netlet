@@ -6,7 +6,6 @@ package malhar.netlet;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.SocketOptions;
 import java.nio.channels.*;
 import java.nio.channels.spi.AbstractSelectableChannel;
 import java.util.ArrayList;
@@ -77,9 +76,13 @@ public class DefaultEventLoop implements Runnable, EventLoop
             Iterator<SelectionKey> iterator = selectedKeys.iterator();
             while (iterator.hasNext()) {
               sk = iterator.next();
-              //logger.debug("sk = {} readyOps = {}", sk.attachment(), Integer.toBinaryString(sk.readyOps()));
+              //logger.debug("sk = {} and attachment = {}", sk, sk.attachment());
               if (!sk.isValid()) {
+                logger.debug("found invalid");
                 continue;
+              }
+              else {
+                //logger.debug(Integer.toBinaryString(sk.readyOps()));
               }
 
               switch (sk.readyOps()) {
@@ -128,18 +131,19 @@ public class DefaultEventLoop implements Runnable, EventLoop
 
           if (!disconnected.isEmpty()) {
             wait = false;
-            logger.debug("handling {} disconenct requests", disconnected.size());
+            //logger.debug("handling {} disconenct requests", disconnected.size());
             Iterator<SelectionKey> keys = disconnected.iterator();
             while (keys.hasNext()) {
               SelectionKey key = keys.next();
-              if (!key.isValid()) {
-                keys.remove();
-                try {
-                  key.channel().close();
-                }
-                catch (IOException io) {
-                  ((Listener)key.attachment()).handleException(io, DefaultEventLoop.this);
-                }
+              keys.remove();
+              if (key.isValid()) {
+                key.cancel();
+              }
+              try {
+                key.channel().close();
+              }
+              catch (IOException io) {
+                io.printStackTrace(); // this needs to change.
               }
             }
           }
@@ -167,11 +171,11 @@ public class DefaultEventLoop implements Runnable, EventLoop
   public void submit(Runnable r)
   {
     if (tasks.isEmpty() && eventThread == Thread.currentThread()) {
-      logger.debug("executing task immediately {}", r);
+      //logger.debug("executing task immediately {}", r);
       r.run();
     }
     else {
-      logger.debug("submitted task {}", r);
+      //logger.debug("submitted task {}", r);
       tasks.add(r);
     }
   }
@@ -194,30 +198,6 @@ public class DefaultEventLoop implements Runnable, EventLoop
     });
   }
 
-  public void unregister(final AbstractSelectableChannel c, final int ops)
-  {
-    submit(new Runnable()
-    {
-      @Override
-      public void run()
-      {
-        for (SelectionKey sk : selector.keys()) {
-          if (sk.channel() == c) {
-            int newOps = sk.interestOps() ^ ops;
-            if (newOps == 0) {
-              ((Listener)sk.attachment()).unregistered(sk);
-              sk.cancel();
-            }
-            else {
-              sk.interestOps(newOps);
-            }
-          }
-        }
-      }
-
-    });
-  }
-
   @Override
   public void unregister(final SelectableChannel c)
   {
@@ -229,7 +209,8 @@ public class DefaultEventLoop implements Runnable, EventLoop
         for (SelectionKey sk : selector.keys()) {
           if (sk.channel() == c) {
             ((Listener)sk.attachment()).unregistered(sk);
-            sk.cancel();
+            sk.interestOps(0);
+            sk.attach(null);
           }
         }
       }
@@ -292,6 +273,8 @@ public class DefaultEventLoop implements Runnable, EventLoop
           if (key.attachment() == l) {
             if (key.isValid()) {
               l.unregistered(key);
+              key.interestOps(0);
+              key.attach(null);
               disconnected.add(key);
             }
             else {
