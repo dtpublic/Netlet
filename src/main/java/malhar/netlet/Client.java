@@ -184,41 +184,6 @@ public abstract class Client implements ClientListener
   @Override
   public void unregistered(SelectionKey key)
   {
-//    Client.this.sendBuffer = sendBuffer.getWhitehole("Client already disconnected!");
-//    key.attach(new ClientListener()
-//    {
-//      @Override
-//      public void handleException(Exception cce, DefaultEventLoop el)
-//      {
-//        Client.this.handleException(cce, el);
-//      }
-//
-//      @Override
-//      public void registered(SelectionKey key)
-//      {
-//      }
-//
-//      @Override
-//      public void unregistered(SelectionKey key)
-//      {
-//      }
-//
-//      @Override
-//      public void read() throws IOException
-//      {
-//      }
-//
-//      @Override
-//      public void write() throws IOException
-//      {
-//        Client.this.write();
-//        if (sendBuffer.isEmpty() && writeBuffer.position() == 0) {
-//          Client.this.key.cancel();
-//        }
-//      }
-//
-//    });
-//    key.interestOps(SelectionKey.OP_WRITE);
   }
 
   protected static class Fragment

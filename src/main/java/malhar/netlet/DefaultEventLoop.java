@@ -54,28 +54,6 @@ public class DefaultEventLoop implements Runnable, EventLoop
     });
   }
 
-  private final static Iterator<SelectionKey> EMPTY_ITERATOR = new Iterator<SelectionKey>()
-  {
-    @Override
-    public boolean hasNext()
-    {
-      return false;
-    }
-
-    @Override
-    public SelectionKey next()
-    {
-      throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public void remove()
-    {
-      throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-  };
-
   @Override
   @SuppressWarnings({"SleepWhileInLoop", "null", "ConstantConditions"})
   public void run()
@@ -91,7 +69,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
     do {
       try {
         do {
-          if (iterator == null) {
+          if (wait) {
             if (selector.selectNow() > 0) {
               selectedKeys = selector.selectedKeys();
               iterator = selectedKeys.iterator();
@@ -141,7 +119,6 @@ public class DefaultEventLoop implements Runnable, EventLoop
             }
 
             selectedKeys.clear();
-            iterator = null;
           }
 
           int size = tasks.size();
@@ -243,14 +220,14 @@ public class DefaultEventLoop implements Runnable, EventLoop
       @Override
       public void run()
       {
-        for (SelectionKey sk : selector.keys()) {
-          if (sk.channel() == c) {
-            ((Listener)sk.attachment()).unregistered(sk);
-            sk.interestOps(0);
-            sk.attach(null);
+        for (SelectionKey key : selector.keys()) {
+          if (key.channel() == c) {
+            ((Listener)key.attachment()).unregistered(key);
+            key.interestOps(0);
+            key.attach(null);
+            }
           }
         }
-      }
 
     });
   }
@@ -387,5 +364,6 @@ public class DefaultEventLoop implements Runnable, EventLoop
     });
   }
 
+  public static SelectionKey KEY;
   private static final Logger logger = LoggerFactory.getLogger(DefaultEventLoop.class);
 }
