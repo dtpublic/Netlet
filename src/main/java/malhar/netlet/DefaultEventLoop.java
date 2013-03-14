@@ -54,41 +54,63 @@ public class DefaultEventLoop implements Runnable, EventLoop
     });
   }
 
+  private final static Iterator<SelectionKey> EMPTY_ITERATOR = new Iterator<SelectionKey>()
+  {
+    @Override
+    public boolean hasNext()
+    {
+      return false;
+    }
+
+    @Override
+    public SelectionKey next()
+    {
+      throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void remove()
+    {
+      throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+  };
+
   @Override
-  @SuppressWarnings("SleepWhileInLoop")
+  @SuppressWarnings({"SleepWhileInLoop", "null", "ConstantConditions"})
   public void run()
   {
-    // clean this up later.
     alive = true;
     eventThread = Thread.currentThread();
-
-    SocketChannel sc;
-    ClientListener l;
     boolean wait = true;
 
+    SelectionKey sk = null;
+    Set<SelectionKey> selectedKeys = null;
+    Iterator<SelectionKey> iterator = null;
+
     do {
-      SelectionKey sk;
       try {
         do {
-          if (selector.selectNow() > 0) {
+          if (iterator == null) {
+            if (selector.selectNow() > 0) {
+              selectedKeys = selector.selectedKeys();
+              iterator = selectedKeys.iterator();
+            }
+          }
+
+          if (iterator != null) {
             wait = false;
-            Set<SelectionKey> selectedKeys = selector.selectedKeys();
-            Iterator<SelectionKey> iterator = selectedKeys.iterator();
+
             while (iterator.hasNext()) {
-              sk = iterator.next();
-              //logger.debug("sk = {} and attachment = {}", sk, sk.attachment());
-              if (!sk.isValid()) {
-                logger.debug("found invalid");
+              if (!(sk = iterator.next()).isValid()) {
                 continue;
               }
-              else {
-                //logger.debug(Integer.toBinaryString(sk.readyOps()));
-              }
 
+              ClientListener l;
               switch (sk.readyOps()) {
                 case SelectionKey.OP_ACCEPT:
                   ServerSocketChannel ssc = (ServerSocketChannel)sk.channel();
-                  sc = ssc.accept();
+                  SocketChannel sc = ssc.accept();
                   sc.configureBlocking(false);
                   ServerListener sl = (ServerListener)sk.attachment();
                   l = sl.getClientConnection(sc, (ServerSocketChannel)sk.channel());
@@ -117,12 +139,15 @@ public class DefaultEventLoop implements Runnable, EventLoop
                   break;
               }
             }
+
             selectedKeys.clear();
+            iterator = null;
           }
 
           int size = tasks.size();
           if (size > 0) {
             wait = false;
+
             do {
               tasks.pollUnsafe().run();
             }
@@ -131,7 +156,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
 
           if (!disconnected.isEmpty()) {
             wait = false;
-            //logger.debug("handling {} disconenct requests", disconnected.size());
+
             Iterator<SelectionKey> keys = disconnected.iterator();
             while (keys.hasNext()) {
               SelectionKey key = keys.next();
@@ -143,7 +168,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
                 key.channel().close();
               }
               catch (IOException io) {
-                io.printStackTrace(); // this needs to change.
+                logger.info("Swallowing exception since nobody cares about it", io);
               }
             }
           }
@@ -161,8 +186,20 @@ public class DefaultEventLoop implements Runnable, EventLoop
         throw new RuntimeException("Interrupted!", ie);
       }
       catch (IOException io) {
-        logger.info("ignoring failed selector! ", io);
+        if (sk == null) {
+          logger.warn("Unexpected exception not related to SelectionKey", io);
+        }
+        else {
+          Listener l = (Listener)sk.attachment();
+          if (l == null) {
+            logger.warn("Exception on unregistered SelectionKey", io);
+          }
+          else {
+            l.handleException(io, this);
+          }
+        }
       }
+
     }
     while (alive);
   }
