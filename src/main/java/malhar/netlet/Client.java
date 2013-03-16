@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import java.util.Arrays;
 import malhar.netlet.Listener.ClientListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,15 +78,15 @@ public abstract class Client implements ClientListener
     if ((size = sendBuffer.size()) > 0 && (remaining = writeBuffer.remaining()) > 0) {
       do {
         Fragment f = sendBuffer.peekUnsafe();
-        if (remaining <= f.len) {
+        if (remaining <= f.length) {
           writeBuffer.put(f.array, f.offset, remaining);
           f.offset += remaining;
-          f.len -= remaining;
+          f.length -= remaining;
           break;
         }
         else {
-          writeBuffer.put(f.array, f.offset, f.len);
-          remaining -= f.len;
+          writeBuffer.put(f.array, f.offset, f.length);
+          remaining -= f.length;
           freeBuffer.offer(sendBuffer.pollUnsafe());
         }
       }
@@ -116,15 +117,15 @@ public abstract class Client implements ClientListener
         remaining = writeBuffer.capacity();
         do {
           Fragment f = sendBuffer.peekUnsafe();
-          if (remaining <= f.len) {
+          if (remaining <= f.length) {
             writeBuffer.put(f.array, f.offset, remaining);
             f.offset += remaining;
-            f.len -= remaining;
+            f.length -= remaining;
             break;
           }
           else {
-            writeBuffer.put(f.array, f.offset, f.len);
-            remaining -= f.len;
+            writeBuffer.put(f.array, f.offset, f.length);
+            remaining -= f.length;
             freeBuffer.offer(sendBuffer.pollUnsafe());
           }
         }
@@ -156,11 +157,11 @@ public abstract class Client implements ClientListener
 
   public void send(byte[] array, int offset, int len) throws InterruptedException
   {
-    //logger.debug("sending {}", Arrays.toString(Arrays.copyOfRange(array, offset, offset+len)));
+    logger.debug("sending {}", Arrays.toString(Arrays.copyOfRange(array, offset, offset+len)));
     Fragment f = freeBuffer.isEmpty() ? new Fragment() : freeBuffer.pollUnsafe();
     f.array = array;
     f.offset = offset;
-    f.len = len;
+    f.length = len;
     sendBuffer.put(f);
 
     synchronized (this) {
@@ -186,11 +187,11 @@ public abstract class Client implements ClientListener
   {
   }
 
-  protected static class Fragment
+  public static class Fragment
   {
     byte[] array;
     int offset;
-    int len;
+    int length;
   }
 
   private static final Logger logger = LoggerFactory.getLogger(Client.class);
