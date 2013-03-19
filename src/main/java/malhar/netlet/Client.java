@@ -79,13 +79,13 @@ public abstract class Client implements ClientListener
       do {
         Fragment f = sendBuffer.peekUnsafe();
         if (remaining <= f.length) {
-          writeBuffer.put(f.array, f.offset, remaining);
+          writeBuffer.put(f.buffer, f.offset, remaining);
           f.offset += remaining;
           f.length -= remaining;
           break;
         }
         else {
-          writeBuffer.put(f.array, f.offset, f.length);
+          writeBuffer.put(f.buffer, f.offset, f.length);
           remaining -= f.length;
           freeBuffer.offer(sendBuffer.pollUnsafe());
         }
@@ -118,13 +118,13 @@ public abstract class Client implements ClientListener
         do {
           Fragment f = sendBuffer.peekUnsafe();
           if (remaining <= f.length) {
-            writeBuffer.put(f.array, f.offset, remaining);
+            writeBuffer.put(f.buffer, f.offset, remaining);
             f.offset += remaining;
             f.length -= remaining;
             break;
           }
           else {
-            writeBuffer.put(f.array, f.offset, f.length);
+            writeBuffer.put(f.buffer, f.offset, f.length);
             remaining -= f.length;
             freeBuffer.offer(sendBuffer.pollUnsafe());
           }
@@ -158,10 +158,16 @@ public abstract class Client implements ClientListener
   public void send(byte[] array, int offset, int len) throws InterruptedException
   {
     logger.debug("sending {}", Arrays.toString(Arrays.copyOfRange(array, offset, offset + len)));
-    Fragment f = freeBuffer.isEmpty() ? new Fragment() : freeBuffer.pollUnsafe();
-    f.array = array;
-    f.offset = offset;
-    f.length = len;
+    Fragment f;
+    if (freeBuffer.isEmpty()) {
+      f = new Fragment(array, offset, len);
+    }
+    else {
+      f = freeBuffer.pollUnsafe();
+      f.buffer = array;
+      f.offset = offset;
+      f.length = len;
+    }
     sendBuffer.put(f);
 
     synchronized (this) {
@@ -189,9 +195,9 @@ public abstract class Client implements ClientListener
 
   public static class Fragment
   {
-    public final byte[] buffer;
-    public final int offset;
-    public final int length;
+    public byte[] buffer;
+    public int offset;
+    public int length;
 
     public Fragment(byte[] array, int offset, int length)
     {
