@@ -157,7 +157,7 @@ public abstract class Client implements ClientListener
 
   public void send(byte[] array, int offset, int len) throws InterruptedException
   {
-    logger.debug("sending {}", Arrays.toString(Arrays.copyOfRange(array, offset, offset+len)));
+    logger.debug("sending {}", Arrays.toString(Arrays.copyOfRange(array, offset, offset + len)));
     Fragment f = freeBuffer.isEmpty() ? new Fragment() : freeBuffer.pollUnsafe();
     f.array = array;
     f.offset = offset;
@@ -189,9 +189,17 @@ public abstract class Client implements ClientListener
 
   public static class Fragment
   {
-    byte[] array;
-    int offset;
-    int length;
+    public final byte[] buffer;
+    public final int offset;
+    public final int length;
+
+    public Fragment(byte[] array, int offset, int length)
+    {
+      buffer = array;
+      this.offset = offset;
+      this.length = length;
+    }
+
   }
 
   private static final Logger logger = LoggerFactory.getLogger(Client.class);
