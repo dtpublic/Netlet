@@ -108,7 +108,7 @@ public class ClientTest
       throw new RuntimeException(ie);
     }
 
-    sleep(25);
+    sleep(100);
 
     el.disconnect(ci);
     el.stop(si);
