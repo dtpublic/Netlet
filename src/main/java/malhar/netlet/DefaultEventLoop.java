@@ -225,9 +225,9 @@ public class DefaultEventLoop implements Runnable, EventLoop
             ((Listener)key.attachment()).unregistered(key);
             key.interestOps(0);
             key.attach(null);
-            }
           }
         }
+      }
 
     });
   }
