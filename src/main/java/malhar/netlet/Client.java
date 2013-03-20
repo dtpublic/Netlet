@@ -157,7 +157,7 @@ public abstract class Client implements ClientListener
 
   public void send(byte[] array, int offset, int len) throws InterruptedException
   {
-    logger.debug("sending {}", Arrays.toString(Arrays.copyOfRange(array, offset, offset + len)));
+    //logger.debug("sending {}", Arrays.toString(Arrays.copyOfRange(array, offset, offset + len)));
     Fragment f;
     if (freeBuffer.isEmpty()) {
       f = new Fragment(array, offset, len);
