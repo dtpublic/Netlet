@@ -364,6 +364,5 @@ public class DefaultEventLoop implements Runnable, EventLoop
     });
   }
 
-  public static SelectionKey KEY;
   private static final Logger logger = LoggerFactory.getLogger(DefaultEventLoop.class);
 }

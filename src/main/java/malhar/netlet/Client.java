@@ -157,7 +157,6 @@ public abstract class Client implements ClientListener
 
   public void send(byte[] array, int offset, int len) throws InterruptedException
   {
-    //logger.debug("sending {}", Arrays.toString(Arrays.copyOfRange(array, offset, offset + len)));
     Fragment f;
     if (freeBuffer.isEmpty()) {
       f = new Fragment(array, offset, len);
@@ -191,6 +190,21 @@ public abstract class Client implements ClientListener
   @Override
   public void unregistered(SelectionKey key)
   {
+    sendBuffer = new CircularBuffer<Fragment>(sendBuffer.capacity())
+    {
+      @Override
+      public boolean isEmpty()
+      {
+        return false; //To change body of generated methods, choose Tools | Templates.
+      }
+
+      @Override
+      public void put(Fragment e) throws InterruptedException
+      {
+        throw new RuntimeException("client does not own the socket any longer!");
+      }
+
+    };
   }
 
   public static class Fragment
