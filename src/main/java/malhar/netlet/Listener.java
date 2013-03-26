@@ -33,4 +33,50 @@ public interface Listener
 
   }
 
+  public static final Listener NOOP_LISTENER = new Listener()
+  {
+    @Override
+    public void handleException(Exception cce, DefaultEventLoop el)
+    {
+    }
+
+    @Override
+    public void registered(SelectionKey key)
+    {
+    }
+
+    @Override
+    public void unregistered(SelectionKey key)
+    {
+    }
+
+  };
+  public static final Listener NOOP_CLIENT_LISTENER = new ClientListener()
+  {
+    @Override
+    public void handleException(Exception cce, DefaultEventLoop el)
+    {
+    }
+
+    @Override
+    public void registered(SelectionKey key)
+    {
+    }
+
+    @Override
+    public void unregistered(SelectionKey key)
+    {
+    }
+
+    @Override
+    public void read() throws IOException
+    {
+    }
+
+    @Override
+    public void write() throws IOException
+    {
+    }
+
+  };
 }

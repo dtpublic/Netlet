@@ -109,7 +109,7 @@ public class CircularBuffer<T> implements UnsafeBlockingQueue<T>
   }
 
   @Override
-  public final int size()
+  public int size()
   {
     return (int)(head - tail);
   }

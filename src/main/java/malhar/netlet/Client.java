@@ -190,6 +190,7 @@ public abstract class Client implements ClientListener
   @Override
   public void unregistered(SelectionKey key)
   {
+    final CircularBuffer<Fragment> SEND_BUFFER = sendBuffer;
     sendBuffer = new CircularBuffer<Fragment>(sendBuffer.capacity())
     {
       @Override
@@ -202,6 +203,24 @@ public abstract class Client implements ClientListener
       public void put(Fragment e) throws InterruptedException
       {
         throw new RuntimeException("client does not own the socket any longer!");
+      }
+
+      @Override
+      public int size()
+      {
+        return SEND_BUFFER.size();
+      }
+
+      @Override
+      public Fragment pollUnsafe()
+      {
+        return SEND_BUFFER.pollUnsafe();
+      }
+
+      @Override
+      public Fragment peekUnsafe()
+      {
+        return SEND_BUFFER.peekUnsafe();
       }
 
     };

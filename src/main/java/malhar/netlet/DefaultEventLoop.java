@@ -224,7 +224,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
           if (key.channel() == c) {
             ((Listener)key.attachment()).unregistered(key);
             key.interestOps(0);
-            key.attach(null);
+            key.attach(Listener.NOOP_LISTENER);
           }
         }
       }
@@ -288,7 +288,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
             if (key.isValid()) {
               l.unregistered(key);
               key.interestOps(0);
-              key.attach(null);
+              key.attach(Listener.NOOP_CLIENT_LISTENER);
               disconnected.add(key);
             }
             else {
