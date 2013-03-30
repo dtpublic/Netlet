@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import java.util.Arrays;
 import malhar.netlet.Listener.ClientListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -237,6 +238,38 @@ public abstract class Client implements ClientListener
       buffer = array;
       this.offset = offset;
       this.length = length;
+    }
+
+    @Override
+    public int hashCode()
+    {
+      int hash = 5;
+      hash = 59 * hash + Arrays.hashCode(this.buffer);
+      hash = 59 * hash + this.offset;
+      hash = 59 * hash + this.length;
+      return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj)
+    {
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      final Fragment other = (Fragment)obj;
+      if (!Arrays.equals(this.buffer, other.buffer)) {
+        return false;
+      }
+      if (this.offset != other.offset) {
+        return false;
+      }
+      if (this.length != other.length) {
+        return false;
+      }
+      return true;
     }
 
   }

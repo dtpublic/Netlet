@@ -220,7 +220,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
       @Override
       public void run()
       {
-        for (SelectionKey key : selector.keys()) {
+        for (SelectionKey key: selector.keys()) {
           if (key.channel() == c) {
             ((Listener)key.attachment()).unregistered(key);
             key.interestOps(0);
@@ -283,7 +283,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
       @Override
       public void run()
       {
-        for (SelectionKey key : selector.keys()) {
+        for (SelectionKey key: selector.keys()) {
           if (key.attachment() == l) {
             if (key.isValid()) {
               l.unregistered(key);
@@ -345,7 +345,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
       @Override
       public void run()
       {
-        for (SelectionKey key : selector.keys()) {
+        for (SelectionKey key: selector.keys()) {
           if (key.attachment() == l) {
             if (key.isValid()) {
               l.unregistered(key);
@@ -362,6 +362,11 @@ public class DefaultEventLoop implements Runnable, EventLoop
       }
 
     });
+  }
+
+  public boolean isActive()
+  {
+    return eventThread != null && eventThread.isAlive();
   }
 
   private static final Logger logger = LoggerFactory.getLogger(DefaultEventLoop.class);
