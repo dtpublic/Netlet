@@ -4,11 +4,9 @@
  */
 package malhar.netlet;
 
-import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
 import malhar.netlet.Listener.ServerListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,12 +22,7 @@ public abstract class Server implements ServerListener
   @Override
   public void registered(SelectionKey key)
   {
-    try {
-      boundAddress = ((ServerSocketChannel)key.channel()).getLocalAddress();
-    }
-    catch (IOException io) {
-      throw new RuntimeException(io);
-    }
+      boundAddress = ((ServerSocketChannel)key.channel()).socket().getLocalSocketAddress();
   }
 
   @Override

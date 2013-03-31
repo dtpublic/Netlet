@@ -318,7 +318,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
         try {
           channel = ServerSocketChannel.open();
           channel.configureBlocking(false);
-          channel.bind(host == null ? new InetSocketAddress(port) : new InetSocketAddress(host, port));
+          channel.socket().bind(host == null ? new InetSocketAddress(port) : new InetSocketAddress(host, port), 128);
           register(channel, SelectionKey.OP_ACCEPT, l);
         }
         catch (IOException io) {
