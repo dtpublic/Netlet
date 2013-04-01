@@ -175,8 +175,10 @@ public class DefaultEventLoop implements Runnable, EventLoop
             l.handleException(io, this);
           }
         }
+        if (selectedKeys.isEmpty()) {
+          wait = true;
+        }
       }
-
     }
     while (alive);
   }
