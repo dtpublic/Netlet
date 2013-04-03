@@ -69,6 +69,16 @@ public abstract class Client implements ClientListener
     }
   }
 
+  public final void suspendRead()
+  {
+    key.interestOps(key.interestOps() & ~SelectionKey.OP_READ);
+  }
+
+  public final void resumeRead()
+  {
+    key.interestOps(key.interestOps() | SelectionKey.OP_READ);
+  }
+
   @Override
   public final void write() throws IOException
   {
