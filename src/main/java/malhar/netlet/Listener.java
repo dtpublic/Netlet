@@ -55,6 +55,34 @@ public interface Listener
     }
 
   };
+  public static final Listener NOOP_CLIENT_LISTENER = new ClientListener()
+  {
+    @Override
+    public void read() throws IOException
+    {
+    }
+
+    @Override
+    public void write() throws IOException
+    {
+    }
+
+    @Override
+    public void handleException(Exception cce, DefaultEventLoop el)
+    {
+    }
+
+    @Override
+    public void registered(SelectionKey key)
+    {
+    }
+
+    @Override
+    public void unregistered(SelectionKey key)
+    {
+    }
+
+  };
 
   static class DisconnectingListener implements ClientListener
   {
@@ -78,10 +106,12 @@ public interface Listener
      */
     private void disconnect()
     {
-      if ((key.interestOps() & SelectionKey.OP_WRITE) == 0)  {
+      if ((key.interestOps() & SelectionKey.OP_WRITE) == 0) {
         if (key.isValid()) {
           key.cancel();
         }
+
+        key.attach(null);
 
         try {
           key.channel().close();
@@ -89,8 +119,6 @@ public interface Listener
         catch (IOException ie) {
           logger.warn("exception while closing socket", ie);
         }
-
-        key.attach(null);
       }
     }
 

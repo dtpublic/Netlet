@@ -65,6 +65,7 @@ public abstract class Client implements ClientListener
     }
     else if (read == -1) {
       unregistered(key);
+      key.attach(Listener.NOOP_CLIENT_LISTENER);
       channel.close();
     }
   }

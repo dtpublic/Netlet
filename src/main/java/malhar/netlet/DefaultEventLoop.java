@@ -276,6 +276,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
               }
             }
             try {
+              key.attach(Listener.NOOP_CLIENT_LISTENER);
               key.channel().close();
             }
             catch (IOException io) {
@@ -333,6 +334,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
               l.unregistered(key);
               key.cancel();
             }
+            key.attach(Listener.NOOP_LISTENER);
             try {
               key.channel().close();
             }
