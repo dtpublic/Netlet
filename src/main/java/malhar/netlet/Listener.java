@@ -5,7 +5,11 @@
 package malhar.netlet;
 
 import java.io.IOException;
-import java.nio.channels.*;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -51,11 +55,54 @@ public interface Listener
     }
 
   };
-  public static final Listener NOOP_CLIENT_LISTENER = new ClientListener()
+
+  static class DisconnectingListener implements ClientListener
   {
+    private final ClientListener previous;
+    private final SelectionKey key;
+
+    public DisconnectingListener(SelectionKey key)
+    {
+      this.key = key;
+      previous = (ClientListener)key.attachment();
+    }
+
+    @Override
+    public void read() throws IOException
+    {
+      disconnect();
+    }
+
+    /**
+     * Disconnect if there is no write interest on this socket.
+     */
+    private void disconnect()
+    {
+      if ((key.interestOps() & SelectionKey.OP_WRITE) == 0)  {
+        if (key.isValid()) {
+          key.cancel();
+        }
+
+        try {
+          key.channel().close();
+        }
+        catch (IOException ie) {
+          logger.warn("exception while closing socket", ie);
+        }
+      }
+    }
+
+    @Override
+    public void write() throws IOException
+    {
+      previous.write();
+      disconnect();
+    }
+
     @Override
     public void handleException(Exception cce, DefaultEventLoop el)
     {
+      previous.handleException(cce, el);
     }
 
     @Override
@@ -68,15 +115,7 @@ public interface Listener
     {
     }
 
-    @Override
-    public void read() throws IOException
-    {
-    }
+    private static final Logger logger = LoggerFactory.getLogger(DisconnectingListener.class);
+  }
 
-    @Override
-    public void write() throws IOException
-    {
-    }
-
-  };
 }

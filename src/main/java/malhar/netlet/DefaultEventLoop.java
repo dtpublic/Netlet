@@ -131,25 +131,6 @@ public class DefaultEventLoop implements Runnable, EventLoop
             while (--size > 0);
           }
 
-          if (!disconnected.isEmpty()) {
-            wait = false;
-
-            Iterator<SelectionKey> keys = disconnected.iterator();
-            while (keys.hasNext()) {
-              SelectionKey key = keys.next();
-              keys.remove();
-              if (key.isValid()) {
-                key.cancel();
-              }
-              try {
-                key.channel().close();
-              }
-              catch (IOException io) {
-                logger.info("Swallowing exception since nobody cares about it", io);
-              }
-            }
-          }
-
           if (wait) {
             Thread.sleep(5);
           }
@@ -289,17 +270,16 @@ public class DefaultEventLoop implements Runnable, EventLoop
           if (key.attachment() == l) {
             if (key.isValid()) {
               l.unregistered(key);
-              key.interestOps(0);
-              key.attach(Listener.NOOP_CLIENT_LISTENER);
-              disconnected.add(key);
+              if ((key.interestOps() & SelectionKey.OP_WRITE) != 0) {
+                key.attach(new Listener.DisconnectingListener(key));
+                return;
+              }
             }
-            else {
-              try {
-                key.channel().close();
-              }
-              catch (IOException io) {
-                l.handleException(io, DefaultEventLoop.this);
-              }
+            try {
+              key.channel().close();
+            }
+            catch (IOException io) {
+              l.handleException(io, DefaultEventLoop.this);
             }
           }
         }
