@@ -89,6 +89,8 @@ public interface Listener
         catch (IOException ie) {
           logger.warn("exception while closing socket", ie);
         }
+
+        key.attach(null);
       }
     }
 
