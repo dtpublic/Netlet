@@ -35,14 +35,25 @@ public abstract class Client implements ClientListener
     this(ByteBuffer.allocateDirect(writeBufferSize), sendBufferSize);
   }
 
+  public Client(int sendBufferSize)
+  {
+    this(8 * 1 * 1024, sendBufferSize);
+  }
+
   public Client()
   {
-    this(8 * 1 * 1024, 1024 * 1024);
+    this(8 * 1 * 1024, 1024);
   }
 
   public Client(ByteBuffer writeBuffer, int sendBufferSize)
   {
     this.writeBuffer = writeBuffer;
+    if (sendBufferSize == 0) {
+      sendBufferSize = 1024;
+    }
+    else if (sendBufferSize % 1024 > 0) {
+      sendBufferSize += 1024 - (sendBufferSize % 1024);
+    }
     sendBuffer = new CircularBuffer<Fragment>(sendBufferSize, 10);
     freeBuffer = new CircularBuffer<Fragment>(sendBufferSize, 10);
   }
