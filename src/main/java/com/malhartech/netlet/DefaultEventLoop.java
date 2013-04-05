@@ -2,8 +2,9 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package malhar.netlet;
+package com.malhartech.netlet;
 
+import com.malhartech.util.CircularBuffer;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.*;
@@ -12,8 +13,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Set;
-import malhar.netlet.Listener.ClientListener;
-import malhar.netlet.Listener.ServerListener;
+import com.malhartech.netlet.Listener.ClientListener;
+import com.malhartech.netlet.Listener.ServerListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

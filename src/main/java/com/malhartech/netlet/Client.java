@@ -2,14 +2,15 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package malhar.netlet;
+package com.malhartech.netlet;
 
+import com.malhartech.util.CircularBuffer;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.Arrays;
-import malhar.netlet.Listener.ClientListener;
+import com.malhartech.netlet.Listener.ClientListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

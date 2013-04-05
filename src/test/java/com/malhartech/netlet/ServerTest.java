@@ -2,8 +2,10 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package malhar.netlet;
+package com.malhartech.netlet;
 
+import com.malhartech.netlet.Server;
+import com.malhartech.netlet.Client;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;

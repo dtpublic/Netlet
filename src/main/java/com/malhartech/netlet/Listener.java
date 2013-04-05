@@ -2,7 +2,7 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package malhar.netlet;
+package com.malhartech.netlet;
 
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
