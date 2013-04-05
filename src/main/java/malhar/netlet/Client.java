@@ -85,12 +85,12 @@ public abstract class Client implements ClientListener
     }
   }
 
-  public final void suspendRead()
+  public void suspendRead()
   {
     key.interestOps(key.interestOps() & ~SelectionKey.OP_READ);
   }
 
-  public final void resumeRead()
+  public void resumeRead()
   {
     key.interestOps(key.interestOps() | SelectionKey.OP_READ);
   }
