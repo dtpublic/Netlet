@@ -112,8 +112,8 @@ public class DefaultEventLoop implements Runnable, EventLoop
 
                 case SelectionKey.OP_READ | SelectionKey.OP_WRITE:
                 case SelectionKey.OP_READ | SelectionKey.OP_WRITE | SelectionKey.OP_CONNECT:
-                  (l = (ClientListener)sk.attachment()).read();
-                  l.write();
+                  (l = (ClientListener)sk.attachment()).write();
+                  l.read();
                   break;
               }
             }
@@ -168,11 +168,9 @@ public class DefaultEventLoop implements Runnable, EventLoop
   public void submit(Runnable r)
   {
     if (tasks.isEmpty() && eventThread == Thread.currentThread()) {
-      //logger.debug("executing task immediately {}", r);
       r.run();
     }
     else {
-      //logger.debug("submitted task {}", r);
       tasks.add(r);
     }
   }
