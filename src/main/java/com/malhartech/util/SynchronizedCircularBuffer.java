@@ -8,7 +8,6 @@ package com.malhartech.util;
  *
  * @author Chetan Narsude <chetan@malhar-inc.com>
  */
-import com.malhartech.util.UnsafeBlockingQueue;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
@@ -25,8 +24,8 @@ public class SynchronizedCircularBuffer<T> implements UnsafeBlockingQueue<T>
   private static final Logger logger = LoggerFactory.getLogger(SynchronizedCircularBuffer.class);
   private final T[] buffer;
   private final int buffermask;
-  private int tail;
-  private int head;
+  private long tail;
+  private long head;
   private final int spinMillis;
 
   /**
@@ -77,7 +76,7 @@ public class SynchronizedCircularBuffer<T> implements UnsafeBlockingQueue<T>
   public synchronized boolean add(T toAdd)
   {
     if (head - tail <= buffermask) {
-      buffer[head++ & buffermask] = toAdd;
+      buffer[(int)(head++ & buffermask)] = toAdd;
       return true;
     }
 
@@ -96,7 +95,7 @@ public class SynchronizedCircularBuffer<T> implements UnsafeBlockingQueue<T>
   public synchronized T remove()
   {
     if (head > tail) {
-      return buffer[tail++ & buffermask];
+      return buffer[(int)(tail++ & buffermask)];
     }
 
     throw new IllegalStateException("Collection is empty");
@@ -106,7 +105,7 @@ public class SynchronizedCircularBuffer<T> implements UnsafeBlockingQueue<T>
   public synchronized T peek()
   {
     if (head > tail) {
-      return buffer[tail & buffermask];
+      return buffer[(int)(tail & buffermask)];
     }
 
     return null;
@@ -123,7 +122,7 @@ public class SynchronizedCircularBuffer<T> implements UnsafeBlockingQueue<T>
   @Override
   public final synchronized int size()
   {
-    return head - tail;
+    return (int)(head - tail);
   }
 
   /**
@@ -154,7 +153,7 @@ public class SynchronizedCircularBuffer<T> implements UnsafeBlockingQueue<T>
     int size = size();
 
     while (head > tail) {
-      container.add(buffer[tail++ & buffermask]);
+      container.add(buffer[(int)(tail++ & buffermask)]);
     }
 
     return size;
@@ -178,7 +177,7 @@ public class SynchronizedCircularBuffer<T> implements UnsafeBlockingQueue<T>
   public final synchronized boolean offer(T e)
   {
     if (head - tail <= buffermask) {
-      buffer[head++ & buffermask] = e;
+      buffer[(int)(head++ & buffermask)] = e;
       return true;
     }
 
@@ -245,7 +244,7 @@ public class SynchronizedCircularBuffer<T> implements UnsafeBlockingQueue<T>
   public final synchronized T poll()
   {
     if (head > tail) {
-      return buffer[tail++ & buffermask];
+      return buffer[(int)(tail++ & buffermask)];
     }
 
     return null;
@@ -314,12 +313,13 @@ public class SynchronizedCircularBuffer<T> implements UnsafeBlockingQueue<T>
   @Override
   public final synchronized T pollUnsafe()
   {
-    return buffer[tail++ & buffermask];
+    return buffer[(int)(tail++ & buffermask)];
   }
 
   @Override
   public final synchronized T peekUnsafe()
   {
-    return buffer[tail & buffermask];
+    return buffer[(int)(tail & buffermask)];
   }
+
 }

@@ -24,7 +24,6 @@ import org.slf4j.LoggerFactory;
  */
 public class CircularBuffer<T> implements UnsafeBlockingQueue<T>
 {
-  private static final Logger logger = LoggerFactory.getLogger(CircularBuffer.class);
   private final T[] buffer;
   private final int buffermask;
   private final int spinMillis;
@@ -469,4 +468,5 @@ public class CircularBuffer<T> implements UnsafeBlockingQueue<T>
     return cb;
   }
 
+  private static final Logger logger = LoggerFactory.getLogger(CircularBuffer.class);
 }
