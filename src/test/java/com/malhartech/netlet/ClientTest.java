@@ -65,7 +65,7 @@ public class ClientTest
           Assert.assertEquals(i++, lb.get());
         }
 
-        assert(i == BUFFER_CAPACITY / 8);
+        assert (i == BUFFER_CAPACITY / 8);
       }
     }
 
@@ -73,10 +73,10 @@ public class ClientTest
 
   public void sendData()
   {
-
   }
 
   @Test
+  @SuppressWarnings("SleepWhileInLoop")
   public void verifySendReceive() throws IOException, InterruptedException
   {
     ServerImpl si = new ServerImpl();
@@ -103,11 +103,9 @@ public class ClientTest
       odd = !odd;
     }
 
-    try {
-      ci.send(outboundBuffer.array(), 0, outboundBuffer.position());
-    }
-    catch (InterruptedException ie) {
-      throw new RuntimeException(ie);
+    byte[] array = outboundBuffer.array();
+    while (!ci.send(array, 0, array.length)) {
+      sleep(5);
     }
 
     sleep(100);

@@ -6,6 +6,7 @@ package com.malhartech.netlet;
 
 import com.malhartech.netlet.Server;
 import com.malhartech.netlet.Client;
+import static java.lang.Thread.sleep;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
@@ -57,12 +58,15 @@ public class ServerTest
     }
 
     @Override
+    @SuppressWarnings("SleepWhileInLoop")
     public void read(int len)
     {
       byte[] array = new byte[len];
       System.arraycopy(buffer.array(), 0, array, 0, len);
       try {
-        send(array, 0, len);
+        while (!send(array, 0, len)) {
+          sleep(5);
+        }
       }
       catch (InterruptedException ie) {
         throw new RuntimeException(ie);
