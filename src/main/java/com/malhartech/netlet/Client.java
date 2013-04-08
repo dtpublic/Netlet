@@ -4,13 +4,13 @@
  */
 package com.malhartech.netlet;
 
+import com.malhartech.netlet.Listener.ClientListener;
 import com.malhartech.util.CircularBuffer;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.Arrays;
-import com.malhartech.netlet.Listener.ClientListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -178,12 +178,12 @@ public abstract class Client implements ClientListener
     }
   }
 
-  public void send(byte[] array) throws InterruptedException
+  public boolean send(byte[] array)
   {
-    send(array, 0, array.length);
+    return send(array, 0, array.length);
   }
 
-  public void send(byte[] array, int offset, int len) throws InterruptedException
+  public boolean send(byte[] array, int offset, int len)
   {
     Fragment f;
     if (freeBuffer.isEmpty()) {
@@ -195,14 +195,19 @@ public abstract class Client implements ClientListener
       f.offset = offset;
       f.length = len;
     }
-    sendBuffer.put(f);
 
-    synchronized (this) {
-      if (!write) {
-        key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
-        write = true;
+    if (sendBuffer.offer(f)) {
+      synchronized (this) {
+        if (!write) {
+          key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
+          write = true;
+        }
       }
+
+      return true;
     }
+
+    return false;
   }
 
   @Override
