@@ -4,12 +4,12 @@
  */
 package com.malhartech.netlet;
 
+import com.malhartech.netlet.Listener.ClientListener;
+import com.malhartech.netlet.Listener.ServerListener;
 import java.net.InetSocketAddress;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import com.malhartech.netlet.Listener.ClientListener;
-import com.malhartech.netlet.Listener.ServerListener;
 
 /**
  *

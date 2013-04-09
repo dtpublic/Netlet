@@ -304,6 +304,14 @@ public abstract class Client implements ClientListener
       return true;
     }
 
+    @Override
+    public String toString()
+    {
+      return "Fragment{" + (length > 256
+                            ? "buffer=" + buffer + ", offset=" + offset + ", length=" + length
+                            : Arrays.toString(Arrays.copyOfRange(buffer, offset, offset + length))) + '}';
+    }
+
   }
 
   private static final Logger logger = LoggerFactory.getLogger(Client.class);
