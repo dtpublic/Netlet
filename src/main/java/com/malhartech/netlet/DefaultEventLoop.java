@@ -75,6 +75,9 @@ public class DefaultEventLoop implements Runnable, EventLoop
               selectedKeys = selector.selectedKeys();
               iterator = selectedKeys.iterator();
             }
+            else {
+              iterator = null;
+            }
           }
 
           if (iterator != null) {
@@ -102,19 +105,26 @@ public class DefaultEventLoop implements Runnable, EventLoop
                   break;
 
                 case SelectionKey.OP_READ:
-                case SelectionKey.OP_READ | SelectionKey.OP_CONNECT:
                   ((ClientListener)sk.attachment()).read();
                   break;
 
                 case SelectionKey.OP_WRITE:
-                case SelectionKey.OP_WRITE | SelectionKey.OP_CONNECT:
                   ((ClientListener)sk.attachment()).write();
                   break;
 
                 case SelectionKey.OP_READ | SelectionKey.OP_WRITE:
-                case SelectionKey.OP_READ | SelectionKey.OP_WRITE | SelectionKey.OP_CONNECT:
                   (l = (ClientListener)sk.attachment()).write();
                   l.read();
+                  break;
+
+                case SelectionKey.OP_WRITE | SelectionKey.OP_CONNECT:
+                case SelectionKey.OP_READ | SelectionKey.OP_CONNECT:
+                case SelectionKey.OP_READ | SelectionKey.OP_WRITE | SelectionKey.OP_CONNECT:
+                  logger.debug("!!!!!! connect interest was ready along with read or write = {} !!!!!!!", Integer.toBinaryString(sk.readyOps()));
+                  break;
+
+                default:
+                  logger.debug("!!!!!! not sure what interest this is {} !!!!!!", Integer.toBinaryString(sk.readyOps()));
                   break;
               }
             }
