@@ -73,6 +73,7 @@ public abstract class Client implements ClientListener
     SocketChannel channel = (SocketChannel)key.channel();
     int read;
     if ((read = channel.read(buffer())) > 0) {
+      //logger.debug("{} read {} bytes", this, read);
       this.read(read);
     }
     else if (read == -1) {
@@ -83,6 +84,9 @@ public abstract class Client implements ClientListener
         unregistered(key);
         key.attach(Listener.NOOP_CLIENT_LISTENER);
       }
+    }
+    else {
+      logger.debug("{} read 0 bytes", this);
     }
   }
 
@@ -136,7 +140,7 @@ public abstract class Client implements ClientListener
         writeBuffer.compact();
         return;
       }
-      else if ((size = sendBuffer.size()) > 0) {
+      else if (size > 0) {
         /*
          * switch back to the write mode.
          */

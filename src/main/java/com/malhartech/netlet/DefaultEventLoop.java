@@ -4,6 +4,8 @@
  */
 package com.malhartech.netlet;
 
+import com.malhartech.netlet.Listener.ClientListener;
+import com.malhartech.netlet.Listener.ServerListener;
 import com.malhartech.util.CircularBuffer;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -13,8 +15,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Set;
-import com.malhartech.netlet.Listener.ClientListener;
-import com.malhartech.netlet.Listener.ServerListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
