@@ -22,7 +22,7 @@ public abstract class Client implements ClientListener
 {
   protected final ByteBuffer writeBuffer;
   protected final CircularBuffer<Fragment> freeBuffer;
-  protected CircularBuffer<Fragment> sendBuffer;
+  protected CircularBuffer<Fragment> sendBuffer4Offers, sendBuffer4Polls;
   protected boolean write = true;
   protected SelectionKey key;
 
@@ -55,7 +55,7 @@ public abstract class Client implements ClientListener
     else if (sendBufferSize % 1024 > 0) {
       sendBufferSize += 1024 - (sendBufferSize % 1024);
     }
-    sendBuffer = new CircularBuffer<Fragment>(sendBufferSize, 10);
+    sendBuffer4Polls = sendBuffer4Offers = new CircularBuffer<Fragment>(sendBufferSize, 10);
     freeBuffer = new CircularBuffer<Fragment>(sendBufferSize, 10);
   }
 
@@ -107,9 +107,9 @@ public abstract class Client implements ClientListener
      * at first when we enter this function, our buffer is in fill mode.
      */
     int remaining, size;
-    if ((size = sendBuffer.size()) > 0 && (remaining = writeBuffer.remaining()) > 0) {
+    if ((size = sendBuffer4Polls.size()) > 0 && (remaining = writeBuffer.remaining()) > 0) {
       do {
-        Fragment f = sendBuffer.peekUnsafe();
+        Fragment f = sendBuffer4Polls.peekUnsafe();
         if (remaining <= f.length) {
           writeBuffer.put(f.buffer, f.offset, remaining);
           f.offset += remaining;
@@ -119,7 +119,7 @@ public abstract class Client implements ClientListener
         else {
           writeBuffer.put(f.buffer, f.offset, f.length);
           remaining -= f.length;
-          freeBuffer.offer(sendBuffer.pollUnsafe());
+          freeBuffer.offer(sendBuffer4Polls.pollUnsafe());
         }
       }
       while (--size > 0);
@@ -148,7 +148,7 @@ public abstract class Client implements ClientListener
 
         remaining = writeBuffer.capacity();
         do {
-          Fragment f = sendBuffer.peekUnsafe();
+          Fragment f = sendBuffer4Polls.peekUnsafe();
           if (remaining <= f.length) {
             writeBuffer.put(f.buffer, f.offset, remaining);
             f.offset += remaining;
@@ -158,7 +158,7 @@ public abstract class Client implements ClientListener
           else {
             writeBuffer.put(f.buffer, f.offset, f.length);
             remaining -= f.length;
-            freeBuffer.offer(sendBuffer.pollUnsafe());
+            freeBuffer.offer(sendBuffer4Polls.pollUnsafe());
           }
         }
         while (--size > 0);
@@ -175,9 +175,14 @@ public abstract class Client implements ClientListener
      */
     writeBuffer.clear();
     synchronized (this) {
-      if (sendBuffer.isEmpty()) {
-        key.interestOps(key.interestOps() & ~SelectionKey.OP_WRITE);
-        write = false;
+      if (sendBuffer4Polls.isEmpty()) {
+        if (sendBuffer4Offers == sendBuffer4Polls) {
+          key.interestOps(key.interestOps() & ~SelectionKey.OP_WRITE);
+          write = false;
+        }
+        else {
+          sendBuffer4Polls = sendBuffer4Offers;
+        }
       }
     }
   }
@@ -200,7 +205,7 @@ public abstract class Client implements ClientListener
       f.length = len;
     }
 
-    if (sendBuffer.offer(f)) {
+    if (sendBuffer4Offers.offer(f)) {
       synchronized (this) {
         if (!write) {
           key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
@@ -209,6 +214,21 @@ public abstract class Client implements ClientListener
       }
 
       return true;
+    }
+
+    if (sendBuffer4Offers.capacity() != 32 * 1024) {
+      synchronized (this) {
+        if (sendBuffer4Offers == sendBuffer4Polls) {
+          sendBuffer4Offers = new CircularBuffer<Fragment>(sendBuffer4Offers.capacity() << 1);
+          sendBuffer4Offers.add(f);
+          if (!write) {
+            key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
+            write = true;
+          }
+
+          return true;
+        }
+      }
     }
 
     return false;
@@ -225,19 +245,19 @@ public abstract class Client implements ClientListener
   public abstract void read(int len);
 
   @Override
-  public void unregistered(SelectionKey key)
+  public synchronized void unregistered(SelectionKey key)
   {
-    final CircularBuffer<Fragment> SEND_BUFFER = sendBuffer;
-    sendBuffer = new CircularBuffer<Fragment>(sendBuffer.capacity())
+    final CircularBuffer<Fragment> SEND_BUFFER = sendBuffer4Offers;
+    sendBuffer4Offers = new CircularBuffer<Fragment>(0)
     {
       @Override
       public boolean isEmpty()
       {
-        return false; //To change body of generated methods, choose Tools | Templates.
+        return SEND_BUFFER.isEmpty();
       }
 
       @Override
-      public void put(Fragment e) throws InterruptedException
+      public boolean offer(Fragment e)
       {
         throw new RuntimeException("client does not own the socket any longer!");
       }

@@ -154,7 +154,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
       catch (InterruptedException ie) {
         throw new RuntimeException("Interrupted!", ie);
       }
-      catch (IOException io) {
+      catch (Exception io) {
         if (sk == null) {
           logger.warn("Unexpected exception not related to SelectionKey", io);
         }
