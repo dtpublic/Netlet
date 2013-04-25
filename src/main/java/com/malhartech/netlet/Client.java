@@ -219,6 +219,7 @@ public abstract class Client implements ClientListener
     if (sendBuffer4Offers.capacity() != 32 * 1024) {
       synchronized (this) {
         if (sendBuffer4Offers == sendBuffer4Polls) {
+          logger.debug("allocating new sendBuffer4Offers of size {} for {}", sendBuffer4Offers.size(), this);
           sendBuffer4Offers = new CircularBuffer<Fragment>(sendBuffer4Offers.capacity() << 1);
           sendBuffer4Offers.add(f);
           if (!write) {
