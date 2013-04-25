@@ -74,7 +74,6 @@ public abstract class Client implements ClientListener
     int read;
     if ((read = channel.read(buffer())) > 0) {
       //logger.debug("{} read {} bytes", this, read);
-      //readByteCount += read;
       this.read(read);
     }
     else if (read == -1) {
@@ -133,9 +132,7 @@ public abstract class Client implements ClientListener
 
     SocketChannel channel = (SocketChannel)key.channel();
     while ((remaining = writeBuffer.remaining()) > 0) {
-      int written = channel.write(writeBuffer);
-      remaining -= written;
-      //writtenByteCount += written;
+      remaining -= channel.write(writeBuffer);
       if (remaining > 0) {
         /*
          * switch back to the fill mode.
