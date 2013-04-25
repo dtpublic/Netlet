@@ -11,8 +11,6 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.*;
 import java.nio.channels.spi.AbstractSelectableChannel;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.Set;
 import org.slf4j.Logger;
@@ -26,9 +24,9 @@ public class DefaultEventLoop implements Runnable, EventLoop
 {
   public final String id;
   private boolean alive;
+  private int refCount;
   private Selector selector;
   private Thread eventThread;
-  private final Collection<SelectionKey> disconnected = new ArrayList<SelectionKey>();
   private final CircularBuffer<Runnable> tasks = new CircularBuffer<Runnable>(1024, 5);
 
   public DefaultEventLoop(String id) throws IOException
@@ -37,9 +35,11 @@ public class DefaultEventLoop implements Runnable, EventLoop
     selector = Selector.open();
   }
 
-  public void start()
+  public synchronized void start()
   {
-    new Thread(this, id).start();
+    if (++refCount == 1) {
+      new Thread(this, id).start();
+    }
   }
 
   public void stop()
@@ -49,7 +49,11 @@ public class DefaultEventLoop implements Runnable, EventLoop
       @Override
       public void run()
       {
-        alive = false;
+        synchronized (DefaultEventLoop.this) {
+          if (--refCount == 0) {
+            alive = false;
+          }
+        }
       }
 
     });
@@ -59,6 +63,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
   @SuppressWarnings({"SleepWhileInLoop", "null", "ConstantConditions"})
   public void run()
   {
+    logger.info("Starting event loop {}", this);
     alive = true;
     eventThread = Thread.currentThread();
     boolean wait = true;
@@ -173,6 +178,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
       }
     }
     while (alive);
+    logger.info("Terminated event loop {}", this);
   }
 
   @Override

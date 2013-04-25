@@ -4,15 +4,12 @@
  */
 package com.malhartech.netlet;
 
-import com.malhartech.netlet.DefaultEventLoop;
-import com.malhartech.netlet.Client;
+import com.malhartech.netlet.ServerTest.ServerImpl;
 import java.io.IOException;
 import static java.lang.Thread.sleep;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
-import java.nio.channels.SelectionKey;
-import com.malhartech.netlet.ServerTest.ServerImpl;
 import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -112,7 +109,7 @@ public class ClientTest
 
     el.disconnect(ci);
     el.stop(si);
-
+    el.stop();
     assert (ci.read);
   }
 
