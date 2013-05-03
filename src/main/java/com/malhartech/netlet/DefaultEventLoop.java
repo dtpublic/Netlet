@@ -188,7 +188,9 @@ public class DefaultEventLoop implements Runnable, EventLoop
       r.run();
     }
     else {
-      tasks.add(r);
+      synchronized (tasks) {
+        tasks.add(r);
+      }
     }
   }
 
