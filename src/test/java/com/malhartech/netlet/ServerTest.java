@@ -4,11 +4,8 @@
  */
 package com.malhartech.netlet;
 
-import com.malhartech.netlet.Server;
-import com.malhartech.netlet.Client;
 import static java.lang.Thread.sleep;
 import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import org.slf4j.Logger;
@@ -40,7 +37,7 @@ public class ServerTest
 
   }
 
-  static class EchoClient extends Client
+  static class EchoClient extends AbstractClient
   {
     ByteBuffer buffer = ByteBuffer.allocate(1024 * 4);
 

@@ -4,14 +4,13 @@
  */
 package com.malhartech.netlet;
 
-import com.malhartech.util.Fragment;
 import com.malhartech.netlet.Listener.ClientListener;
 import com.malhartech.util.CircularBuffer;
+import com.malhartech.util.Fragment;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
-import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,7 +18,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author Chetan Narsude <chetan@malhar-inc.com>
  */
-public abstract class Client implements ClientListener
+public abstract class AbstractClient implements ClientListener
 {
   protected final ByteBuffer writeBuffer;
   protected final CircularBuffer<Fragment> freeBuffer;
@@ -32,22 +31,22 @@ public abstract class Client implements ClientListener
     return key;
   }
 
-  public Client(int writeBufferSize, int sendBufferSize)
+  public AbstractClient(int writeBufferSize, int sendBufferSize)
   {
     this(ByteBuffer.allocateDirect(writeBufferSize), sendBufferSize);
   }
 
-  public Client(int sendBufferSize)
+  public AbstractClient(int sendBufferSize)
   {
     this(8 * 1 * 1024, sendBufferSize);
   }
 
-  public Client()
+  public AbstractClient()
   {
     this(8 * 1 * 1024, 1024);
   }
 
-  public Client(ByteBuffer writeBuffer, int sendBufferSize)
+  public AbstractClient(ByteBuffer writeBuffer, int sendBufferSize)
   {
     this.writeBuffer = writeBuffer;
     if (sendBufferSize == 0) {
@@ -285,5 +284,5 @@ public abstract class Client implements ClientListener
     };
   }
 
-  private static final Logger logger = LoggerFactory.getLogger(Client.class);
+  private static final Logger logger = LoggerFactory.getLogger(AbstractClient.class);
 }

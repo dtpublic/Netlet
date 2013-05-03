@@ -19,9 +19,9 @@ import org.slf4j.LoggerFactory;
  *
  * @author Chetan Narsude <chetan@malhar-inc.com>
  */
-public class ClientTest
+public class AbstractClientTest
 {
-  public ClientTest()
+  public AbstractClientTest()
   {
   }
 
@@ -31,7 +31,7 @@ public class ClientTest
     return "ClientTest{" + '}';
   }
 
-  public class ClientImpl extends Client
+  public class ClientImpl extends AbstractClient
   {
     public static final int BUFFER_CAPACITY = 8 * 1024 + 1;
     ByteBuffer buffer = ByteBuffer.allocate(BUFFER_CAPACITY);
@@ -113,5 +113,5 @@ public class ClientTest
     assert (ci.read);
   }
 
-  private static final Logger logger = LoggerFactory.getLogger(ClientTest.class);
+  private static final Logger logger = LoggerFactory.getLogger(AbstractClientTest.class);
 }
