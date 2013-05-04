@@ -25,7 +25,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
   public final String id;
   private boolean alive;
   private int refCount;
-  private Selector selector;
+  private final Selector selector;
   private Thread eventThread;
   private final CircularBuffer<Runnable> tasks = new CircularBuffer<Runnable>(1024, 5);
 
@@ -60,8 +60,20 @@ public class DefaultEventLoop implements Runnable, EventLoop
   }
 
   @Override
-  @SuppressWarnings({"SleepWhileInLoop", "null", "ConstantConditions"})
-  public void run()
+  public void run() {
+    try {
+      runEventLoop();
+    } finally {
+      if (alive == true) {
+        // OutOfMemoryError or other exception that was not handled
+        alive = false;
+        logger.warn("Unexpected termination of event loop {}", this);
+      }
+    }
+  }
+
+  @SuppressWarnings({"SleepWhileInLoop", "ConstantConditions"})
+  private void runEventLoop()
   {
     logger.info("Starting event loop {}", this);
     alive = true;
