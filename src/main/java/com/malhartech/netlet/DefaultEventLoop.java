@@ -60,10 +60,12 @@ public class DefaultEventLoop implements Runnable, EventLoop
   }
 
   @Override
-  public void run() {
+  public void run()
+  {
     try {
       runEventLoop();
-    } finally {
+    }
+    finally {
       if (alive == true) {
         // OutOfMemoryError or other exception that was not handled
         alive = false;
