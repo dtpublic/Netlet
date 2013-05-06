@@ -126,6 +126,14 @@ public class DefaultEventLoop implements Runnable, EventLoop
                 case SelectionKey.OP_READ | SelectionKey.OP_CONNECT:
                 case SelectionKey.OP_READ | SelectionKey.OP_WRITE | SelectionKey.OP_CONNECT:
                   logger.debug("!!!!!! connect interest was ready along with read or write = {} !!!!!!!", Integer.toBinaryString(sk.readyOps()));
+                  ((SocketChannel)sk.channel()).finishConnect();
+                  sk.interestOps(SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+                  if (sk.isWritable()) {
+                    ((ClientListener)sk.attachment()).write();
+                  }
+                  if (sk.isReadable()) {
+                    ((ClientListener)sk.attachment()).read();
+                  }
                   break;
 
                 default:
