@@ -67,7 +67,6 @@ public class DefaultEventLoop implements Runnable, EventLoop
     }
     finally {
       if (alive == true) {
-        // OutOfMemoryError or other exception that was not handled
         alive = false;
         logger.warn("Unexpected termination of event loop {}", this);
       }
@@ -119,6 +118,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
                   break;
 
                 case SelectionKey.OP_CONNECT:
+                  logger.debug("Connect received on {} for {}", sk.channel(), sk.attachment());
                   ((SocketChannel)sk.channel()).finishConnect();
                   sk.interestOps(SelectionKey.OP_READ | SelectionKey.OP_WRITE);
                   break;
@@ -139,7 +139,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
                 case SelectionKey.OP_WRITE | SelectionKey.OP_CONNECT:
                 case SelectionKey.OP_READ | SelectionKey.OP_CONNECT:
                 case SelectionKey.OP_READ | SelectionKey.OP_WRITE | SelectionKey.OP_CONNECT:
-                  logger.debug("!!!!!! connect interest was ready along with read or write = {} !!!!!!!", Integer.toBinaryString(sk.readyOps()));
+                  logger.debug("Connect({}) received on {} for {}", Integer.toBinaryString(sk.readyOps()), sk.channel(), sk.attachment());
                   ((SocketChannel)sk.channel()).finishConnect();
                   sk.interestOps(SelectionKey.OP_READ | SelectionKey.OP_WRITE);
                   if (sk.isWritable()) {
