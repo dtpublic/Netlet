@@ -35,6 +35,10 @@ public interface Listener
 
     public void write() throws IOException;
 
+    public void connected();
+
+    public void disconnected();
+
   }
 
   public static final Listener NOOP_LISTENER = new Listener()
@@ -82,6 +86,16 @@ public interface Listener
     {
     }
 
+    @Override
+    public void connected()
+    {
+    }
+
+    @Override
+    public void disconnected()
+    {
+    }
+
   };
 
   static class DisconnectingListener implements ClientListener
@@ -107,6 +121,7 @@ public interface Listener
     private void disconnect()
     {
       if ((key.interestOps() & SelectionKey.OP_WRITE) == 0) {
+        disconnected();
         if (key.isValid()) {
           key.cancel();
         }
@@ -142,6 +157,16 @@ public interface Listener
 
     @Override
     public void unregistered(SelectionKey key)
+    {
+    }
+
+    @Override
+    public void connected()
+    {
+    }
+
+    @Override
+    public void disconnected()
     {
     }
 

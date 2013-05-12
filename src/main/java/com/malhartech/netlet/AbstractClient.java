@@ -63,7 +63,6 @@ public abstract class AbstractClient implements ClientListener
   public void registered(SelectionKey key)
   {
     this.key = key;
-    write = false;
     //logger.debug("listener = {} and interestOps = {}", key.attachment(), Integer.toBinaryString(key.interestOps()));
   }
 
@@ -233,6 +232,17 @@ public abstract class AbstractClient implements ClientListener
     }
 
     return false;
+  }
+
+  @Override
+  public void connected()
+  {
+    write = false;
+  }
+
+  @Override
+  public void disconnected()
+  {
   }
 
   @Override

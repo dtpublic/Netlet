@@ -66,6 +66,16 @@ public class AbstractClientTest
       }
     }
 
+    @Override
+    public void connected()
+    {
+    }
+
+    @Override
+    public void disconnected()
+    {
+    }
+
   }
 
   public void sendData()

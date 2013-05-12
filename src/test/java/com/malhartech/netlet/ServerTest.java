@@ -70,6 +70,16 @@ public class ServerTest
       }
     }
 
+    @Override
+    public void connected()
+    {
+    }
+
+    @Override
+    public void disconnected()
+    {
+    }
+
   }
 
   private static final Logger logger = LoggerFactory.getLogger(ServerTest.class);
