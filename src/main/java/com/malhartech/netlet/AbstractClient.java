@@ -67,6 +67,18 @@ public abstract class AbstractClient implements ClientListener
   }
 
   @Override
+  public void connected()
+  {
+    write = false;
+  }
+
+  @Override
+  public void disconnected()
+  {
+    write = true;
+  }
+
+  @Override
   public final void read() throws IOException
   {
     SocketChannel channel = (SocketChannel)key.channel();
