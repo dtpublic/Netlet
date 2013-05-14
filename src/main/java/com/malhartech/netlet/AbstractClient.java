@@ -247,17 +247,6 @@ public abstract class AbstractClient implements ClientListener
   }
 
   @Override
-  public void connected()
-  {
-    write = false;
-  }
-
-  @Override
-  public void disconnected()
-  {
-  }
-
-  @Override
   public void handleException(Exception cce, DefaultEventLoop el)
   {
     logger.debug("", cce);
