@@ -6,7 +6,7 @@ package com.malhartech.netlet;
 
 import com.malhartech.netlet.Listener.ClientListener;
 import com.malhartech.util.CircularBuffer;
-import com.malhartech.util.Fragment;
+import com.malhartech.common.Fragment;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
