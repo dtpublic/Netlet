@@ -4,7 +4,7 @@
     <parent>
     <artifactId>malhar-framework</artifactId>
     <groupId>com.malhartech</groupId>
-    <version>0.1-SNAPSHOT</version>
+    <version>0.3.1</version>
   </parent>
 
     <artifactId>malhar-netlet</artifactId>

@@ -5,8 +5,8 @@
 package com.malhartech.netlet;
 
 import com.malhartech.netlet.Listener.ClientListener;
-import com.malhartech.util.CircularBuffer;
-import com.malhartech.common.Fragment;
+import com.malhartech.netlet.util.CircularBuffer;
+import com.malhartech.common.util.Slice;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
@@ -21,8 +21,8 @@ import org.slf4j.LoggerFactory;
 public abstract class AbstractClient implements ClientListener
 {
   protected final ByteBuffer writeBuffer;
-  protected final CircularBuffer<Fragment> freeBuffer;
-  protected CircularBuffer<Fragment> sendBuffer4Offers, sendBuffer4Polls;
+  protected final CircularBuffer<Slice> freeBuffer;
+  protected CircularBuffer<Slice> sendBuffer4Offers, sendBuffer4Polls;
   protected boolean write = true;
   protected SelectionKey key;
 
@@ -55,8 +55,8 @@ public abstract class AbstractClient implements ClientListener
     else if (sendBufferSize % 1024 > 0) {
       sendBufferSize += 1024 - (sendBufferSize % 1024);
     }
-    sendBuffer4Polls = sendBuffer4Offers = new CircularBuffer<Fragment>(sendBufferSize, 10);
-    freeBuffer = new CircularBuffer<Fragment>(sendBufferSize, 10);
+    sendBuffer4Polls = sendBuffer4Offers = new CircularBuffer<Slice>(sendBufferSize, 10);
+    freeBuffer = new CircularBuffer<Slice>(sendBufferSize, 10);
   }
 
   @Override
@@ -120,7 +120,7 @@ public abstract class AbstractClient implements ClientListener
     int remaining, size;
     if ((size = sendBuffer4Polls.size()) > 0 && (remaining = writeBuffer.remaining()) > 0) {
       do {
-        Fragment f = sendBuffer4Polls.peekUnsafe();
+        Slice f = sendBuffer4Polls.peekUnsafe();
         if (remaining <= f.length) {
           writeBuffer.put(f.buffer, f.offset, remaining);
           f.offset += remaining;
@@ -159,7 +159,7 @@ public abstract class AbstractClient implements ClientListener
 
         remaining = writeBuffer.capacity();
         do {
-          Fragment f = sendBuffer4Polls.peekUnsafe();
+          Slice f = sendBuffer4Polls.peekUnsafe();
           if (remaining <= f.length) {
             writeBuffer.put(f.buffer, f.offset, remaining);
             f.offset += remaining;
@@ -205,9 +205,9 @@ public abstract class AbstractClient implements ClientListener
 
   public boolean send(byte[] array, int offset, int len)
   {
-    Fragment f;
+    Slice f;
     if (freeBuffer.isEmpty()) {
-      f = new Fragment(array, offset, len);
+      f = new Slice(array, offset, len);
     }
     else {
       f = freeBuffer.pollUnsafe();
@@ -231,7 +231,7 @@ public abstract class AbstractClient implements ClientListener
       synchronized (this) {
         if (sendBuffer4Offers == sendBuffer4Polls) {
           logger.debug("allocating new sendBuffer4Offers of size {} for {}", sendBuffer4Offers.size(), this);
-          sendBuffer4Offers = new CircularBuffer<Fragment>(sendBuffer4Offers.capacity() << 1);
+          sendBuffer4Offers = new CircularBuffer<Slice>(sendBuffer4Offers.capacity() << 1);
           sendBuffer4Offers.add(f);
           if (!write) {
             key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
@@ -259,8 +259,8 @@ public abstract class AbstractClient implements ClientListener
   @Override
   public synchronized void unregistered(SelectionKey key)
   {
-    final CircularBuffer<Fragment> SEND_BUFFER = sendBuffer4Offers;
-    sendBuffer4Offers = new CircularBuffer<Fragment>(0)
+    final CircularBuffer<Slice> SEND_BUFFER = sendBuffer4Offers;
+    sendBuffer4Offers = new CircularBuffer<Slice>(0)
     {
       @Override
       public boolean isEmpty()
@@ -269,7 +269,7 @@ public abstract class AbstractClient implements ClientListener
       }
 
       @Override
-      public boolean offer(Fragment e)
+      public boolean offer(Slice e)
       {
         throw new RuntimeException("client does not own the socket any longer!");
       }
@@ -281,13 +281,13 @@ public abstract class AbstractClient implements ClientListener
       }
 
       @Override
-      public Fragment pollUnsafe()
+      public Slice pollUnsafe()
       {
         return SEND_BUFFER.pollUnsafe();
       }
 
       @Override
-      public Fragment peekUnsafe()
+      public Slice peekUnsafe()
       {
         return SEND_BUFFER.peekUnsafe();
       }

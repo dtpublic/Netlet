@@ -6,7 +6,7 @@ package com.malhartech.netlet;
 
 import com.malhartech.netlet.Listener.ClientListener;
 import com.malhartech.netlet.Listener.ServerListener;
-import com.malhartech.util.CircularBuffer;
+import com.malhartech.netlet.util.CircularBuffer;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.*;
