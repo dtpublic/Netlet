@@ -2,7 +2,7 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.malhartech.common;
+package com.malhartech.common.util;
 
 import java.util.Arrays;
 
@@ -10,13 +10,13 @@ import java.util.Arrays;
  *
  * @author Chetan Narsude <chetan@malhar-inc.com>
  */
-public class Fragment
+public class Slice
 {
   public byte[] buffer;
   public int offset;
   public int length;
 
-  public Fragment(byte[] array, int offset, int length)
+  public Slice(byte[] array, int offset, int length)
   {
     buffer = array;
     this.offset = offset;
@@ -42,7 +42,7 @@ public class Fragment
     if (getClass() != obj.getClass()) {
       return false;
     }
-    final Fragment other = (Fragment)obj;
+    final Slice other = (Slice)obj;
     if (!Arrays.equals(this.buffer, other.buffer)) {
       return false;
     }
@@ -58,7 +58,7 @@ public class Fragment
   @Override
   public String toString()
   {
-    return "Fragment{" + (length > 256 ? "buffer=" + buffer + ", offset=" + offset + ", length=" + length : Arrays.toString(Arrays.copyOfRange(buffer, offset, offset + length))) + '}';
+    return "Slice{" + (length > 256 ? "buffer=" + buffer + ", offset=" + offset + ", length=" + length : Arrays.toString(Arrays.copyOfRange(buffer, offset, offset + length))) + '}';
   }
 
 }
