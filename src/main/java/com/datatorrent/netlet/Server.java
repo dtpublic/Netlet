@@ -2,12 +2,14 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.malhartech.netlet;
+package com.datatorrent.netlet;
 
 import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
-import com.malhartech.netlet.Listener.ServerListener;
+
+import com.datatorrent.netlet.Listener.ServerListener;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

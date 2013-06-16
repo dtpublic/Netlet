@@ -2,7 +2,7 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.malhartech.netlet;
+package com.datatorrent.netlet;
 
 import static java.lang.Thread.sleep;
 import java.nio.ByteBuffer;
@@ -10,6 +10,9 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.datatorrent.netlet.AbstractClient;
+import com.datatorrent.netlet.Server;
 
 /**
  *

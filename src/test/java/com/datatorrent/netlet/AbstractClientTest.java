@@ -2,9 +2,12 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.malhartech.netlet;
+package com.datatorrent.netlet;
 
-import com.malhartech.netlet.ServerTest.ServerImpl;
+import com.datatorrent.netlet.AbstractClient;
+import com.datatorrent.netlet.DefaultEventLoop;
+import com.datatorrent.netlet.ServerTest.ServerImpl;
+
 import java.io.IOException;
 import static java.lang.Thread.sleep;
 import java.net.InetSocketAddress;

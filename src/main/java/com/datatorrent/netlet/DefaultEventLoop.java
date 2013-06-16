@@ -2,11 +2,12 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.malhartech.netlet;
+package com.datatorrent.netlet;
 
-import com.malhartech.netlet.Listener.ClientListener;
-import com.malhartech.netlet.Listener.ServerListener;
-import com.malhartech.netlet.util.CircularBuffer;
+import com.datatorrent.netlet.Listener.ClientListener;
+import com.datatorrent.netlet.Listener.ServerListener;
+import com.datatorrent.netlet.util.CircularBuffer;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.*;

@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
     <artifactId>malhar-framework</artifactId>
-    <groupId>com.malhartech</groupId>
+    <groupId>com.datatorrent</groupId>
     <version>0.3.2-SNAPSHOT</version>
   </parent>
 

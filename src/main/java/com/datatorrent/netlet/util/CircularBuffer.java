@@ -2,7 +2,7 @@
  *  Copyright (c) 2012 Malhar, Inc.
  *  All Rights Reserved.
  */
-package com.malhartech.netlet.util;
+package com.datatorrent.netlet.util;
 
 /**
  *

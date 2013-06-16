@@ -2,13 +2,12 @@
  *  Copyright (c) 2012 Malhar, Inc.
  *  All Rights Reserved.
  */
-package com.malhartech.netlet.util;
+package com.datatorrent.netlet.util;
 
-import com.malhartech.netlet.util.CircularBuffer;
-import com.malhartech.netlet.util.CircularBuffer;
-import com.malhartech.netlet.util.SynchronizedCircularBuffer;
-import com.malhartech.netlet.util.UnsafeBlockingQueue;
-import com.malhartech.netlet.util.UnsafeBlockingQueue;
+import com.datatorrent.netlet.util.CircularBuffer;
+import com.datatorrent.netlet.util.SynchronizedCircularBuffer;
+import com.datatorrent.netlet.util.UnsafeBlockingQueue;
+
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
