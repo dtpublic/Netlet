@@ -2,7 +2,7 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.malhartech.common.util;
+package com.datatorrent.common.util;
 
 import java.util.Arrays;
 
