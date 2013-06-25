@@ -6,7 +6,7 @@ package com.datatorrent.netlet.util;
 
 /**
  *
- * @author Chetan Narsude <chetan@malhar-inc.com>
+ * @author Chetan Narsude <chetan@datatorrent.com>
  */
 import static java.lang.Thread.sleep;
 import java.util.Arrays;

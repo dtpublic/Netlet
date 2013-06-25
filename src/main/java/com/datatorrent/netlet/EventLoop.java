@@ -14,7 +14,7 @@ import java.nio.channels.SocketChannel;
 
 /**
  *
- * @author Chetan Narsude <chetan@malhar-inc.com>
+ * @author Chetan Narsude <chetan@datatorrent.com>
  */
 public interface EventLoop
 {

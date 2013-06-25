@@ -9,7 +9,7 @@ import java.util.concurrent.BlockingQueue;
 /**
  *
  * @param <T> type of the objects in this queue.
- * @author Chetan Narsude <chetan@malhar-inc.com>
+ * @author Chetan Narsude <chetan@datatorrent.com>
  */
 public interface UnsafeBlockingQueue<T> extends BlockingQueue<T>
 {

@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  *
- * @author Chetan Narsude <chetan@malhar-inc.com>
+ * @author Chetan Narsude <chetan@datatorrent.com>
  */
 public class AbstractClientTest
 {
