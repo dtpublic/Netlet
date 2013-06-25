@@ -10,7 +10,7 @@
   <artifactId>malhar-netlet</artifactId>
   <packaging>jar</packaging>
 
-  <name>netlet</name>
+  <name>Netlet</name>
 
   <properties>
     <maven.deploy.skip>true</maven.deploy.skip>
