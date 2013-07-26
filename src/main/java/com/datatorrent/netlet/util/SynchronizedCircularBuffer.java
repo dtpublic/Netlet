@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
  * Provides a non-premium implementation of circular buffer<p>
  * <br>
  *
+ * @since 0.3.2
  */
 public class SynchronizedCircularBuffer<T> implements UnsafeBlockingQueue<T>
 {

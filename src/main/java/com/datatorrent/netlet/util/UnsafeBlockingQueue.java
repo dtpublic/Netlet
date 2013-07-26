@@ -7,9 +7,11 @@ package com.datatorrent.netlet.util;
 import java.util.concurrent.BlockingQueue;
 
 /**
+ * <p>UnsafeBlockingQueue interface.</p>
  *
  * @param <T> type of the objects in this queue.
  * @author Chetan Narsude <chetan@datatorrent.com>
+ * @since 0.3.2
  */
 public interface UnsafeBlockingQueue<T> extends BlockingQueue<T>
 {

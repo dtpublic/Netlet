@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
  * <br>
  *
  * @param <T> type of the objects in this buffer.
+ * @since 0.3.2
  */
 public class CircularBuffer<T> implements UnsafeBlockingQueue<T>
 {
