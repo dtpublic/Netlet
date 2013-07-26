@@ -18,7 +18,9 @@ package com.datatorrent.common.util;
 import java.util.Arrays;
 
 /**
+ * <p>Slice class.</p>
  *
+ * @since 0.3.2
  */
 public class Slice
 {
