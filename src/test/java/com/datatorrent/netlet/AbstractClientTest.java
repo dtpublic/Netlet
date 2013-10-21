@@ -4,19 +4,18 @@
  */
 package com.datatorrent.netlet;
 
-import com.datatorrent.netlet.AbstractClient;
-import com.datatorrent.netlet.DefaultEventLoop;
-import com.datatorrent.netlet.ServerTest.ServerImpl;
-
 import java.io.IOException;
-import static java.lang.Thread.sleep;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
+import static java.lang.Thread.sleep;
+
 import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.datatorrent.netlet.ServerTest.ServerImpl;
 
 /**
  *

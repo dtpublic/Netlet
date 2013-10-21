@@ -8,11 +8,12 @@ package com.datatorrent.netlet.util;
  *
  * @author Chetan Narsude <chetan@datatorrent.com>
  */
-import static java.lang.Thread.sleep;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
+import static java.lang.Thread.sleep;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

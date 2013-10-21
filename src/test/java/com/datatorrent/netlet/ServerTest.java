@@ -4,15 +4,14 @@
  */
 package com.datatorrent.netlet;
 
-import static java.lang.Thread.sleep;
 import java.nio.ByteBuffer;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import static java.lang.Thread.sleep;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datatorrent.netlet.AbstractClient;
-import com.datatorrent.netlet.Server;
 
 /**
  *

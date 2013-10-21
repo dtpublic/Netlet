@@ -8,10 +8,10 @@ import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 
-import com.datatorrent.netlet.Listener.ServerListener;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.datatorrent.netlet.Listener.ServerListener;
 
 /**
  * <p>Abstract Server class.</p>

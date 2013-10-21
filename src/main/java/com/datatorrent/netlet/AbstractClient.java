@@ -4,16 +4,17 @@
  */
 package com.datatorrent.netlet;
 
-import com.datatorrent.common.util.Slice;
-import com.datatorrent.netlet.Listener.ClientListener;
-import com.datatorrent.netlet.util.CircularBuffer;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.datatorrent.common.util.Slice;
+import com.datatorrent.netlet.Listener.ClientListener;
+import com.datatorrent.netlet.util.CircularBuffer;
 
 /**
  * <p>Abstract AbstractClient class.</p>

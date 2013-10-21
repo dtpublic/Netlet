@@ -4,13 +4,13 @@
  */
 package com.datatorrent.netlet;
 
-import com.datatorrent.netlet.Listener.ClientListener;
-import com.datatorrent.netlet.Listener.ServerListener;
-
 import java.net.InetSocketAddress;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+
+import com.datatorrent.netlet.Listener.ClientListener;
+import com.datatorrent.netlet.Listener.ServerListener;
 
 /**
  * <p>EventLoop interface.</p>

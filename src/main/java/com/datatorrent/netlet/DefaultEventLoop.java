@@ -4,18 +4,19 @@
  */
 package com.datatorrent.netlet;
 
-import com.datatorrent.netlet.Listener.ClientListener;
-import com.datatorrent.netlet.Listener.ServerListener;
-import com.datatorrent.netlet.util.CircularBuffer;
-
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.*;
 import java.nio.channels.spi.AbstractSelectableChannel;
 import java.util.Iterator;
 import java.util.Set;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.datatorrent.netlet.Listener.ClientListener;
+import com.datatorrent.netlet.Listener.ServerListener;
+import com.datatorrent.netlet.util.CircularBuffer;
 
 /**
  * <p>DefaultEventLoop class.</p>

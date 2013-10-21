@@ -4,10 +4,6 @@
  */
 package com.datatorrent.netlet.util;
 
-import com.datatorrent.netlet.util.CircularBuffer;
-import com.datatorrent.netlet.util.SynchronizedCircularBuffer;
-import com.datatorrent.netlet.util.UnsafeBlockingQueue;
-
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
