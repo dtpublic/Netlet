@@ -1,0 +1,45 @@
+/*
+ *  Copyright (c) 2012-2013 DataTorrent, Inc.
+ *  All Rights Reserved.
+ */
+package com.datatorrent.common.util;
+
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+
+/**
+ * <p>ScheduledThreadPoolExecutor class.</p>
+ *
+ * @author Chetan Narsude <chetan@datatorrent.com>
+ * @since 0.3.2
+ */
+public class ScheduledThreadPoolExecutor extends java.util.concurrent.ScheduledThreadPoolExecutor implements ScheduledExecutorService
+{
+  public static final Logger logger = LoggerFactory.getLogger(ScheduledExecutorService.class);
+
+  public ScheduledThreadPoolExecutor(int corePoolSize, String executorName)
+  {
+    super(corePoolSize, new NameableThreadFactory(executorName));
+  }
+
+  /**
+   *
+   * @return long
+   */
+  @Override
+  public final long getCurrentTimeMillis()
+  {
+    return System.currentTimeMillis();
+  }
+
+  @Override
+  protected void afterExecute(Runnable r, Throwable t)
+  {
+    super.afterExecute(r, t);
+    if (t != null) {
+      logger.error("Scheduled task {} died with {}", r, t);
+    }
+  }
+}
