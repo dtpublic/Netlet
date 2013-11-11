@@ -80,7 +80,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
   @SuppressWarnings({"SleepWhileInLoop", "ConstantConditions"})
   private void runEventLoop()
   {
-    logger.info("Starting event loop {}", this);
+    logger.debug("Starting event loop {}", this);
     alive = true;
     eventThread = Thread.currentThread();
     boolean wait = true;
@@ -122,8 +122,10 @@ public class DefaultEventLoop implements Runnable, EventLoop
                   break;
 
                 case SelectionKey.OP_CONNECT:
-                  ((SocketChannel)sk.channel()).finishConnect();
-                  sk.interestOps(SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+                  if (((SocketChannel)sk.channel()).finishConnect()) {
+                    ((ClientListener)sk.attachment()).connected();
+                    sk.interestOps(SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+                  }
                   break;
 
                 case SelectionKey.OP_READ:
@@ -142,13 +144,15 @@ public class DefaultEventLoop implements Runnable, EventLoop
                 case SelectionKey.OP_WRITE | SelectionKey.OP_CONNECT:
                 case SelectionKey.OP_READ | SelectionKey.OP_CONNECT:
                 case SelectionKey.OP_READ | SelectionKey.OP_WRITE | SelectionKey.OP_CONNECT:
-                  ((SocketChannel)sk.channel()).finishConnect();
-                  sk.interestOps(SelectionKey.OP_READ | SelectionKey.OP_WRITE);
-                  if (sk.isWritable()) {
-                    ((ClientListener)sk.attachment()).write();
-                  }
-                  if (sk.isReadable()) {
-                    ((ClientListener)sk.attachment()).read();
+                  if (((SocketChannel)sk.channel()).finishConnect()) {
+                    ((ClientListener)sk.attachment()).connected();
+                    sk.interestOps(SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+                    if (sk.isWritable()) {
+                      ((ClientListener)sk.attachment()).write();
+                    }
+                    if (sk.isReadable()) {
+                      ((ClientListener)sk.attachment()).read();
+                    }
                   }
                   break;
 
@@ -244,7 +248,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
       @Override
       public void run()
       {
-        for (SelectionKey key: selector.keys()) {
+        for (SelectionKey key : selector.keys()) {
           if (key.channel() == c) {
             ((Listener)key.attachment()).unregistered(key);
             key.interestOps(0);
@@ -280,8 +284,15 @@ public class DefaultEventLoop implements Runnable, EventLoop
         try {
           channel = SocketChannel.open();
           channel.configureBlocking(false);
-          channel.connect(address);
-          register(channel, SelectionKey.OP_CONNECT, l);
+          if (channel.connect(address)) {
+            if (l instanceof ClientListener) {
+              ((ClientListener)l).connected();
+              register(channel, SelectionKey.OP_READ, l);
+            }
+          }
+          else {
+            register(channel, SelectionKey.OP_CONNECT, l);
+          }
         }
         catch (IOException ie) {
           l.handleException(ie, DefaultEventLoop.this);
@@ -307,7 +318,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
       @Override
       public void run()
       {
-        for (SelectionKey key: selector.keys()) {
+        for (SelectionKey key : selector.keys()) {
           if (key.attachment() == l) {
             if (key.isValid()) {
               l.unregistered(key);
@@ -369,7 +380,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
       @Override
       public void run()
       {
-        for (SelectionKey key: selector.keys()) {
+        for (SelectionKey key : selector.keys()) {
           if (key.attachment() == l) {
             if (key.isValid()) {
               l.unregistered(key);
