@@ -68,6 +68,12 @@ public class Slice
   }
 
   @Override
+  public Slice clone()
+  {
+    return new Slice(Arrays.copyOfRange(buffer, offset, offset + length), 0, length);
+  }
+
+  @Override
   public String toString()
   {
     return "Slice{" + (length > 256 ? "buffer=" + buffer + ", offset=" + offset + ", length=" + length : Arrays.toString(Arrays.copyOfRange(buffer, offset, offset + length))) + '}';
