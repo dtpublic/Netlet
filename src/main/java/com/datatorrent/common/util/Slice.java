@@ -15,18 +15,25 @@
  */
 package com.datatorrent.common.util;
 
+import java.io.Serializable;
 import java.util.Arrays;
+import org.getopt.util.hash.MurmurHash;
 
 /**
  * <p>Slice class.</p>
  *
  * @since 0.3.2
  */
-public class Slice
+public class Slice implements Serializable
 {
   public byte[] buffer;
   public int offset;
   public int length;
+
+  private Slice()
+  {
+    /* needed for some serializers */
+  }
 
   public Slice(byte[] array, int offset, int length)
   {
@@ -39,7 +46,7 @@ public class Slice
   public int hashCode()
   {
     int hash = 5;
-    hash = 59 * hash + Arrays.hashCode(this.buffer);
+    hash = 59 * hash + MurmurHash.hash(buffer, hash, offset, length);
     hash = 59 * hash + this.offset;
     hash = 59 * hash + this.length;
     return hash;
@@ -55,15 +62,27 @@ public class Slice
       return false;
     }
     final Slice other = (Slice)obj;
-    if (!Arrays.equals(this.buffer, other.buffer)) {
-      return false;
-    }
-    if (this.offset != other.offset) {
-      return false;
-    }
     if (this.length != other.length) {
       return false;
     }
+
+    if (this.offset != other.offset) {
+      return false;
+    }
+
+    final int offset1 = this.offset;
+    final byte[] buffer1 = this.buffer;
+    int i = offset1 + this.length;
+
+    final byte[] buffer2 = other.buffer;
+    int j = other.offset + other.length;
+
+    while (i-- > offset1) {
+      if (buffer1[i] != buffer2[--j]) {
+        return false;
+      }
+    }
+
     return true;
   }
 
@@ -79,4 +98,5 @@ public class Slice
     return "Slice{" + (length > 256 ? "buffer=" + buffer + ", offset=" + offset + ", length=" + length : Arrays.toString(Arrays.copyOfRange(buffer, offset, offset + length))) + '}';
   }
 
+  private static final long serialVersionUID = 201311151835L;
 }
