@@ -17,6 +17,7 @@ package com.datatorrent.common.util;
 
 import java.io.Serializable;
 import java.util.Arrays;
+
 import org.getopt.util.hash.MurmurHash;
 
 /**
@@ -30,6 +31,7 @@ public class Slice implements Serializable
   public int offset;
   public int length;
 
+  @SuppressWarnings("unused")
   private Slice()
   {
     /* needed for some serializers */
