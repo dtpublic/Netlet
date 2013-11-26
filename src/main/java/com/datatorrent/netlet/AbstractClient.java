@@ -96,6 +96,7 @@ public abstract class AbstractClient implements ClientListener
         channel.close();
       }
       finally {
+        disconnected();
         unregistered(key);
         key.attach(Listener.NOOP_CLIENT_LISTENER);
       }
