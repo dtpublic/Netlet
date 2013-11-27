@@ -27,7 +27,7 @@ package org.getopt.util.hash;
  * <p>Customized for DataTorrent's use for hash of byte array slice by
  * Chetan Narsude (chetan at datatorrent com).</p>
  *
- * @since 0.9.0
+ * @since 0.9.1
  */
 public class MurmurHash
 {
