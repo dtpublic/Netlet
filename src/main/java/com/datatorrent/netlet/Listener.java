@@ -1,6 +1,6 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * Copyright 2012-2013 DataTorrent, Inc.
+ * All Rights Reserved.
  */
 package com.datatorrent.netlet;
 
