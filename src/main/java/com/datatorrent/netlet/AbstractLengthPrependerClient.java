@@ -87,7 +87,7 @@ public abstract class AbstractLengthPrependerClient extends com.datatorrent.netl
               }
               else {
                 throw new NumberFormatException("Invalid varint at location " + offset + " => "
-                        + Arrays.toString(Arrays.copyOfRange(buffer, offset, readOffset)));
+                                                + Arrays.toString(Arrays.copyOfRange(buffer, offset, readOffset)));
               }
             }
           }
@@ -180,6 +180,26 @@ public abstract class AbstractLengthPrependerClient extends com.datatorrent.netl
     return write(message, 0, message.length);
   }
 
+  public boolean write(byte[] message1, byte[] message2)
+  {
+    if (sendBuffer4Offers.remainingCapacity() < 3) {
+      return false;
+    }
+
+    if (intOffset > INT_ARRAY_SIZE) {
+      intBuffer = new byte[INT_ARRAY_SIZE + 5];
+      intOffset = 0;
+    }
+
+    int newOffset = VarInt.write(message1.length + message2.length, intBuffer, intOffset);
+    if (send(intBuffer, intOffset, newOffset - intOffset)) {
+      intOffset = newOffset;
+      return send(message1, 0, message1.length) && send(message2, 0, message2.length);
+    }
+
+    return false;
+  }
+
   private int intOffset;
   private static final int INT_ARRAY_SIZE = 4096 - 5;
   private byte[] intBuffer = new byte[INT_ARRAY_SIZE + 5];
@@ -200,9 +220,8 @@ public abstract class AbstractLengthPrependerClient extends com.datatorrent.netl
       intOffset = newOffset;
       return send(message, offset, size);
     }
-    else {
-      return false;
-    }
+    
+    return false;
   }
 
   @Override
