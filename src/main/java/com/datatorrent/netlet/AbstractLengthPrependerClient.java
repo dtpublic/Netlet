@@ -198,7 +198,6 @@ public abstract class AbstractLengthPrependerClient extends com.datatorrent.netl
       return send(message1, 0, message1.length) && send(message2, 0, message2.length);
     }
 
-    logger.debug("sendBuffer for Offers = {}, socket = {}", sendBuffer4Offers, key.channel());
     return false;
   }
 
@@ -209,6 +208,7 @@ public abstract class AbstractLengthPrependerClient extends com.datatorrent.netl
   public boolean write(byte[] message, int offset, int size)
   {
     if (sendBuffer4Offers.remainingCapacity() < 2) {
+      logger.debug("sendBuffer for Offers = {}, socket = {}", sendBuffer4Offers, key.channel());
       return false;
     }
 

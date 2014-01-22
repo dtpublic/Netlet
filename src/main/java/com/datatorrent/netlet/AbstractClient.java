@@ -247,6 +247,7 @@ public abstract class AbstractClient implements ClientListener
       }
     }
 
+    logger.debug("sendBuffer for Offers = {}, socket = {}", sendBuffer4Offers, key.channel());
     return false;
   }
 
