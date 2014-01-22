@@ -88,7 +88,6 @@ public abstract class AbstractClient implements ClientListener
     SocketChannel channel = (SocketChannel)key.channel();
     int read;
     if ((read = channel.read(buffer())) > 0) {
-      //logger.debug("{} read {} bytes", this, read);
       this.read(read);
     }
     else if (read == -1) {
