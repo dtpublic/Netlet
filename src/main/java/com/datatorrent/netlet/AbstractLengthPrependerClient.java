@@ -4,6 +4,7 @@
  */
 package com.datatorrent.netlet;
 
+import com.datatorrent.common.util.DTThrowable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -230,10 +231,11 @@ public abstract class AbstractLengthPrependerClient extends com.datatorrent.netl
   public void handleException(Exception cce, DefaultEventLoop el)
   {
     if (cce instanceof IOException) {
+      logger.debug("Disconnecting because of {}", cce);
       el.disconnect(this);
     }
     else {
-      throw new RuntimeException(cce);
+      DTThrowable.rethrow(cce);
     }
   }
 
