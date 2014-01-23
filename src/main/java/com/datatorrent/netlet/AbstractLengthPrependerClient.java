@@ -228,6 +228,7 @@ public abstract class AbstractLengthPrependerClient extends com.datatorrent.netl
       }
 
       logger.debug("Exiting sendBuffer for Offers = {}, socket = {}", sendBuffer4Offers, key.channel());
+      System.exit(0);
       throw new IllegalStateException("Only partial data could be written!");
     }
 
