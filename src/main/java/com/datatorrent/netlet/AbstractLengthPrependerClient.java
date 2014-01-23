@@ -207,7 +207,6 @@ public abstract class AbstractLengthPrependerClient extends com.datatorrent.netl
   public boolean write(byte[] message, int offset, int size)
   {
     if (sendBuffer4Offers.remainingCapacity() < 2 && sendBuffer4Offers.capacity() == MAX_SENDBUFFER_SIZE) {
-      logger.debug("sendBuffer for Offers = {}, socket = {}", sendBuffer4Offers, key.channel());
       return false;
     }
 
@@ -219,7 +218,9 @@ public abstract class AbstractLengthPrependerClient extends com.datatorrent.netl
     int newOffset = VarInt.write(size, intBuffer, intOffset);
     if (send(intBuffer, intOffset, newOffset - intOffset)) {
       intOffset = newOffset;
-      return send(message, offset, size);
+      if (!send(message, offset, size)) {
+        throw new IllegalStateException("Only partial data could be written!");
+      }
     }
 
     return false;
