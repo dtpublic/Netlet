@@ -25,6 +25,7 @@ import com.datatorrent.netlet.util.CircularBuffer;
 public abstract class AbstractClient implements ClientListener
 {
   private static final int THROWABLES_COLLECTION_SIZE = 4;
+  public static final int MAX_SENDBUFFER_SIZE = 32 * 1024;
   protected CircularBuffer<NetletThrowable> throwables;
   protected final ByteBuffer writeBuffer;
   protected final CircularBuffer<Slice> freeBuffer;
@@ -236,7 +237,7 @@ public abstract class AbstractClient implements ClientListener
       return true;
     }
 
-    if (sendBuffer4Offers.capacity() != 32 * 1024) {
+    if (sendBuffer4Offers.capacity() != MAX_SENDBUFFER_SIZE) {
       synchronized (this) {
         if (sendBuffer4Offers == sendBuffer4Polls) {
           logger.debug("allocating new sendBuffer4Offers of size {} for {}", sendBuffer4Offers.size(), this);
