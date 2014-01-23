@@ -14,7 +14,9 @@ import org.slf4j.LoggerFactory;
 
 import com.datatorrent.common.util.Slice;
 import com.datatorrent.netlet.Listener.ClientListener;
+import com.datatorrent.netlet.NetletThrowable.NetletRuntimeException;
 import com.datatorrent.netlet.util.CircularBuffer;
+import java.net.SocketException;
 
 /**
  * <p>Abstract AbstractClient class.</p>
@@ -283,7 +285,7 @@ public abstract class AbstractClient implements ClientListener
       @Override
       public boolean offer(Slice e)
       {
-        throw new RuntimeException("client does not own the socket any longer!");
+        throw new NetletRuntimeException(new UnsupportedOperationException("Client does not own the socket any longer!"), null);
       }
 
       @Override
