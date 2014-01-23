@@ -4,8 +4,6 @@
  */
 package com.datatorrent.netlet;
 
-import com.datatorrent.common.util.DTThrowable;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
@@ -13,7 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.datatorrent.common.util.VarInt;
-import java.net.ConnectException;
 
 /**
  * <p>Abstract AbstractLengthPrependerClient class.</p>
@@ -226,21 +223,6 @@ public abstract class AbstractLengthPrependerClient extends com.datatorrent.netl
     }
 
     return false;
-  }
-
-  @Override
-  public void handleException(Exception exception, DefaultEventLoop el)
-  {
-    if (exception instanceof ConnectException) {
-      logger.warn("Connection failed.", exception);
-    }
-    else if (exception instanceof IOException) {
-      logger.debug("Disconnection worthy exception.", exception);
-      el.disconnect(this);
-    }
-    else {
-      DTThrowable.rethrow(exception);
-    }
   }
 
   public void beginMessage()
