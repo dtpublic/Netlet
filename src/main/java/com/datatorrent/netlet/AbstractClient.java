@@ -16,7 +16,6 @@ import com.datatorrent.common.util.Slice;
 import com.datatorrent.netlet.Listener.ClientListener;
 import com.datatorrent.netlet.NetletThrowable.NetletRuntimeException;
 import com.datatorrent.netlet.util.CircularBuffer;
-import java.net.SocketException;
 
 /**
  * <p>Abstract AbstractClient class.</p>
@@ -239,10 +238,13 @@ public abstract class AbstractClient implements ClientListener
       return true;
     }
 
+    if (!throwables.isEmpty()) {
+      NetletThrowable.Util.throwRuntime(throwables.pollUnsafe());
+    }
+
     if (sendBuffer4Offers.capacity() != MAX_SENDBUFFER_SIZE) {
       synchronized (this) {
         if (sendBuffer4Offers == sendBuffer4Polls) {
-          logger.debug("allocating new sendBuffer4Offers of size {} for {}", sendBuffer4Offers.size(), this);
           sendBuffer4Offers = new CircularBuffer<Slice>(sendBuffer4Offers.capacity() << 1);
           sendBuffer4Offers.add(f);
           if (!write) {
@@ -255,7 +257,6 @@ public abstract class AbstractClient implements ClientListener
       }
     }
 
-    logger.debug("sendBuffer for Offers = {}, socket = {}", sendBuffer4Offers, key.channel());
     return false;
   }
 

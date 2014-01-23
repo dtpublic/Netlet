@@ -38,6 +38,19 @@ public interface NetletThrowable
       return new NetletException((Exception)th, el);
     }
 
+    public static void throwRuntime(NetletThrowable cause)
+    {
+      if (cause instanceof NetletError) {
+        throw (NetletError)cause;
+      }
+
+      if (cause instanceof RuntimeException) {
+        throw (NetletRuntimeException)cause;
+      }
+
+      throw new NetletRuntimeException(new RuntimeException(cause.getCause()), cause.getEventLoop());
+    }
+
     public static void rethrow(NetletThrowable cause) throws NetletException
     {
       if (cause instanceof NetletError) {
