@@ -27,10 +27,11 @@ public abstract class AbstractClient implements ClientListener
 {
   private static final int THROWABLES_COLLECTION_SIZE = 4;
   public static final int MAX_SENDBUFFER_SIZE = 32 * 1024;
-  protected CircularBuffer<NetletThrowable> throwables;
-  protected final ByteBuffer writeBuffer;
+  protected final CircularBuffer<NetletThrowable> throwables;
+  protected final CircularBuffer<CircularBuffer<Slice>> bufferOfBuffers;
   protected final CircularBuffer<Slice> freeBuffer;
   protected CircularBuffer<Slice> sendBuffer4Offers, sendBuffer4Polls;
+  protected final ByteBuffer writeBuffer;
   protected boolean write = true;
   protected SelectionKey key;
 
@@ -42,23 +43,29 @@ public abstract class AbstractClient implements ClientListener
   public AbstractClient(int writeBufferSize, int sendBufferSize)
   {
     this(ByteBuffer.allocateDirect(writeBufferSize), sendBufferSize);
-    this.throwables = new CircularBuffer<NetletThrowable>(THROWABLES_COLLECTION_SIZE);
   }
 
   public AbstractClient(int sendBufferSize)
   {
     this(8 * 1 * 1024, sendBufferSize);
-    this.throwables = new CircularBuffer<NetletThrowable>(THROWABLES_COLLECTION_SIZE);
   }
 
   public AbstractClient()
   {
     this(8 * 1 * 1024, 1024);
-    this.throwables = new CircularBuffer<NetletThrowable>(THROWABLES_COLLECTION_SIZE);
   }
 
   public AbstractClient(ByteBuffer writeBuffer, int sendBufferSize)
   {
+    int i = 1;
+    int n = 1;
+    do {
+      n *= 2;
+      i++;
+    }
+    while (n != MAX_SENDBUFFER_SIZE);
+    bufferOfBuffers = new CircularBuffer<CircularBuffer<Slice>>(i);
+
     this.throwables = new CircularBuffer<NetletThrowable>(THROWABLES_COLLECTION_SIZE);
     this.writeBuffer = writeBuffer;
     if (sendBufferSize == 0) {
@@ -196,14 +203,17 @@ public abstract class AbstractClient implements ClientListener
      * switch back to fill mode.
      */
     writeBuffer.clear();
-    synchronized (this) {
+    synchronized (bufferOfBuffers) {
       if (sendBuffer4Polls.isEmpty()) {
         if (sendBuffer4Offers == sendBuffer4Polls) {
           key.interestOps(key.interestOps() & ~SelectionKey.OP_WRITE);
           write = false;
         }
-        else {
+        else if (bufferOfBuffers.isEmpty()) {
           sendBuffer4Polls = sendBuffer4Offers;
+        }
+        else {
+          sendBuffer4Polls = bufferOfBuffers.pollUnsafe();
         }
       }
     }
@@ -228,7 +238,7 @@ public abstract class AbstractClient implements ClientListener
     }
 
     if (sendBuffer4Offers.offer(f)) {
-      synchronized (this) {
+      synchronized (bufferOfBuffers) {
         if (!write) {
           key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
           write = true;
@@ -243,17 +253,19 @@ public abstract class AbstractClient implements ClientListener
     }
 
     if (sendBuffer4Offers.capacity() != MAX_SENDBUFFER_SIZE) {
-      synchronized (this) {
-        if (sendBuffer4Offers == sendBuffer4Polls) {
-          sendBuffer4Offers = new CircularBuffer<Slice>(sendBuffer4Offers.capacity() << 1);
-          sendBuffer4Offers.add(f);
-          if (!write) {
-            key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
-            write = true;
-          }
-
-          return true;
+      synchronized (bufferOfBuffers) {
+        if (sendBuffer4Offers != sendBuffer4Polls) {
+          bufferOfBuffers.add(sendBuffer4Offers);
         }
+
+        sendBuffer4Offers = new CircularBuffer<Slice>(sendBuffer4Offers.capacity() << 1);
+        sendBuffer4Offers.add(f);
+        if (!write) {
+          key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
+          write = true;
+        }
+
+        return true;
       }
     }
 
@@ -272,42 +284,44 @@ public abstract class AbstractClient implements ClientListener
   public abstract void read(int len);
 
   @Override
-  public synchronized void unregistered(SelectionKey key)
+  public void unregistered(SelectionKey key)
   {
-    final CircularBuffer<Slice> SEND_BUFFER = sendBuffer4Offers;
-    sendBuffer4Offers = new CircularBuffer<Slice>(0)
-    {
-      @Override
-      public boolean isEmpty()
+    synchronized (bufferOfBuffers) {
+      final CircularBuffer<Slice> SEND_BUFFER = sendBuffer4Offers;
+      sendBuffer4Offers = new CircularBuffer<Slice>(0)
       {
-        return SEND_BUFFER.isEmpty();
-      }
+        @Override
+        public boolean isEmpty()
+        {
+          return SEND_BUFFER.isEmpty();
+        }
 
-      @Override
-      public boolean offer(Slice e)
-      {
-        throw new NetletRuntimeException(new UnsupportedOperationException("Client does not own the socket any longer!"), null);
-      }
+        @Override
+        public boolean offer(Slice e)
+        {
+          throw new NetletRuntimeException(new UnsupportedOperationException("Client does not own the socket any longer!"), null);
+        }
 
-      @Override
-      public int size()
-      {
-        return SEND_BUFFER.size();
-      }
+        @Override
+        public int size()
+        {
+          return SEND_BUFFER.size();
+        }
 
-      @Override
-      public Slice pollUnsafe()
-      {
-        return SEND_BUFFER.pollUnsafe();
-      }
+        @Override
+        public Slice pollUnsafe()
+        {
+          return SEND_BUFFER.pollUnsafe();
+        }
 
-      @Override
-      public Slice peekUnsafe()
-      {
-        return SEND_BUFFER.peekUnsafe();
-      }
+        @Override
+        public Slice peekUnsafe()
+        {
+          return SEND_BUFFER.peekUnsafe();
+        }
 
-    };
+      };
+    }
   }
 
   private static final Logger logger = LoggerFactory.getLogger(AbstractClient.class);
