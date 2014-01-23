@@ -194,7 +194,11 @@ public abstract class AbstractLengthPrependerClient extends com.datatorrent.netl
     int newOffset = VarInt.write(message1.length + message2.length, intBuffer, intOffset);
     if (send(intBuffer, intOffset, newOffset - intOffset)) {
       intOffset = newOffset;
-      return send(message1, 0, message1.length) && send(message2, 0, message2.length);
+      if (send(message1, 0, message1.length) && send(message2, 0, message2.length)) {
+        return true;
+      }
+
+      throw new IllegalStateException("Only partial data could be written!");
     }
 
     return false;
@@ -218,9 +222,11 @@ public abstract class AbstractLengthPrependerClient extends com.datatorrent.netl
     int newOffset = VarInt.write(size, intBuffer, intOffset);
     if (send(intBuffer, intOffset, newOffset - intOffset)) {
       intOffset = newOffset;
-      if (!send(message, offset, size)) {
-        throw new IllegalStateException("Only partial data could be written!");
+      if (send(message, offset, size)) {
+        return true;
       }
+      
+      throw new IllegalStateException("Only partial data could be written!");
     }
 
     return false;
