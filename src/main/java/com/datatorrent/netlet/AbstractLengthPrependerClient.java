@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.datatorrent.common.util.VarInt;
+import java.net.ConnectException;
 
 /**
  * <p>Abstract AbstractLengthPrependerClient class.</p>
@@ -228,14 +229,17 @@ public abstract class AbstractLengthPrependerClient extends com.datatorrent.netl
   }
 
   @Override
-  public void handleException(Exception cce, DefaultEventLoop el)
+  public void handleException(Exception exception, DefaultEventLoop el)
   {
-    if (cce instanceof IOException) {
-      logger.debug("Disconnecting because of {}", cce);
+    if (exception instanceof ConnectException) {
+      logger.warn("Connection failed.", exception);
+    }
+    else if (exception instanceof IOException) {
+      logger.debug("Disconnection worthy exception.", exception);
       el.disconnect(this);
     }
     else {
-      DTThrowable.rethrow(cce);
+      DTThrowable.rethrow(exception);
     }
   }
 

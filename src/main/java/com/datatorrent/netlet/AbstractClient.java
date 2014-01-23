@@ -24,6 +24,8 @@ import com.datatorrent.netlet.util.CircularBuffer;
  */
 public abstract class AbstractClient implements ClientListener
 {
+  private static final int THROWABLES_COLLECTION_SIZE = 4;
+  protected CircularBuffer<NetletThrowable> throwables;
   protected final ByteBuffer writeBuffer;
   protected final CircularBuffer<Slice> freeBuffer;
   protected CircularBuffer<Slice> sendBuffer4Offers, sendBuffer4Polls;
@@ -38,20 +40,24 @@ public abstract class AbstractClient implements ClientListener
   public AbstractClient(int writeBufferSize, int sendBufferSize)
   {
     this(ByteBuffer.allocateDirect(writeBufferSize), sendBufferSize);
+    this.throwables = new CircularBuffer<NetletThrowable>(THROWABLES_COLLECTION_SIZE);
   }
 
   public AbstractClient(int sendBufferSize)
   {
     this(8 * 1 * 1024, sendBufferSize);
+    this.throwables = new CircularBuffer<NetletThrowable>(THROWABLES_COLLECTION_SIZE);
   }
 
   public AbstractClient()
   {
     this(8 * 1 * 1024, 1024);
+    this.throwables = new CircularBuffer<NetletThrowable>(THROWABLES_COLLECTION_SIZE);
   }
 
   public AbstractClient(ByteBuffer writeBuffer, int sendBufferSize)
   {
+    this.throwables = new CircularBuffer<NetletThrowable>(THROWABLES_COLLECTION_SIZE);
     this.writeBuffer = writeBuffer;
     if (sendBufferSize == 0) {
       sendBufferSize = 1024;
@@ -67,7 +73,6 @@ public abstract class AbstractClient implements ClientListener
   public void registered(SelectionKey key)
   {
     this.key = key;
-    //logger.debug("listener = {} and interestOps = {}", key.attachment(), Integer.toBinaryString(key.interestOps()));
   }
 
   @Override
@@ -254,7 +259,8 @@ public abstract class AbstractClient implements ClientListener
   @Override
   public void handleException(Exception cce, DefaultEventLoop el)
   {
-    logger.debug("", cce);
+    logger.debug("Collecting exception in {}", throwables.size(), cce);
+    throwables.offer(NetletThrowable.Util.rewrap(cce, el));
   }
 
   public abstract ByteBuffer buffer();
