@@ -115,7 +115,6 @@ public abstract class AbstractLengthPrependerClient extends com.datatorrent.netl
         if (size == -1) {
           if (writeOffset == buffer.length) {
             if (readOffset > writeOffset - 5) {
-              //logger.info("hit the boundary while reading varint! on {} and {}", this, readOffset);
               /*
                * we may be reading partial varint, adjust the buffers so that we have enough space to read the full data.
                */
