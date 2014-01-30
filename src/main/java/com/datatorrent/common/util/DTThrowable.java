@@ -9,6 +9,8 @@ package com.datatorrent.common.util;
  * If the cause is of type Error or RuntimeException then the
  * cause it thrown as it is. Otherwise the cause is wrapped in
  * a RuntimeException and the later is thrown.
+ *
+ * @since 0.9.3
  */
 public class DTThrowable
 {
