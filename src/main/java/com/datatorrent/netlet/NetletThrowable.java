@@ -5,8 +5,10 @@
 package com.datatorrent.netlet;
 
 /**
+ * <p>NetletThrowable interface.</p>
  *
  * @author Chetan Narsude <chetan@datatorrent.com>
+ * @since 0.9.3
  */
 public interface NetletThrowable
 {
