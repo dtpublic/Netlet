@@ -4,6 +4,7 @@
  */
 package com.datatorrent.netlet;
 
+import com.datatorrent.common.util.DTThrowable;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
@@ -11,6 +12,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.datatorrent.common.util.VarInt;
+import java.io.IOException;
+import java.net.ConnectException;
 
 /**
  * <p>Abstract AbstractLengthPrependerClient class.</p>
@@ -243,6 +246,21 @@ public abstract class AbstractLengthPrependerClient extends com.datatorrent.netl
 
   public void endMessage()
   {
+  }
+
+  @Override
+  public void handleException(Exception cce, DefaultEventLoop el)
+  {
+    if (cce instanceof ConnectException) {
+      logger.warn("Connection Failed", cce);
+    }
+    else if (cce instanceof IOException) {
+      logger.debug("Disconnecting", cce);
+      el.disconnect(this);
+    }
+    else {
+      DTThrowable.rethrow(cce);
+    }
   }
 
   private static final Logger logger = LoggerFactory.getLogger(AbstractLengthPrependerClient.class);
