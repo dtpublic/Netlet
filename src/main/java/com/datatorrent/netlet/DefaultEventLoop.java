@@ -405,5 +405,11 @@ public class DefaultEventLoop implements Runnable, EventLoop
     return eventThread != null && eventThread.isAlive();
   }
 
+  @Override
+  public String toString()
+  {
+    return "{id=" + id + ", tasks=" + tasks + '}';
+  }
+
   private static final Logger logger = LoggerFactory.getLogger(DefaultEventLoop.class);
 }
