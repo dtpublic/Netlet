@@ -60,6 +60,12 @@ public class DefaultEventLoop implements Runnable, EventLoop
         }
       }
 
+      @Override
+      public String toString()
+      {
+        return String.format("stop{%d}", refCount);
+      }
+
     });
   }
 
@@ -72,7 +78,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
     finally {
       if (alive == true) {
         alive = false;
-        logger.warn("Unexpected termination of event loop {}", this);
+        logger.warn("Unexpected termination of {}", this);
       }
     }
   }
@@ -80,7 +86,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
   @SuppressWarnings({"SleepWhileInLoop", "ConstantConditions"})
   private void runEventLoop()
   {
-    logger.debug("Starting event loop {}", this);
+    logger.debug("Starting {}", this);
     alive = true;
     eventThread = Thread.currentThread();
     boolean wait = true;
@@ -170,7 +176,9 @@ public class DefaultEventLoop implements Runnable, EventLoop
             wait = false;
 
             do {
-              tasks.pollUnsafe().run();
+              Runnable task = tasks.pollUnsafe();
+              logger.debug("{}.run{{}}", task, this);
+              task.run();
             }
             while (--size > 0);
           }
@@ -200,19 +208,23 @@ public class DefaultEventLoop implements Runnable, EventLoop
             l.handleException(io, this);
           }
         }
+
         if (selectedKeys.isEmpty()) {
+          logger.debug("idle {}", this);
           wait = true;
         }
       }
     }
     while (alive);
-    logger.info("Terminated event loop {}", this);
+    logger.debug("Terminated {}", this);
   }
 
   @Override
   public void submit(Runnable r)
   {
-    if (tasks.isEmpty() && eventThread == Thread.currentThread()) {
+    Thread currentThread = Thread.currentThread();
+    logger.debug("{}.{}.{}", currentThread, r, eventThread);
+    if (tasks.isEmpty() && eventThread == currentThread) {
       r.run();
     }
     else {
@@ -237,6 +249,12 @@ public class DefaultEventLoop implements Runnable, EventLoop
         }
       }
 
+      @Override
+      public String toString()
+      {
+        return String.format("register(%s, %d, %s)", c, ops, l);
+      }
+
     });
   }
 
@@ -255,6 +273,12 @@ public class DefaultEventLoop implements Runnable, EventLoop
             key.attach(Listener.NOOP_LISTENER);
           }
         }
+      }
+
+      @Override
+      public String toString()
+      {
+        return String.format("unregister(%s)", c);
       }
 
     });
@@ -307,6 +331,12 @@ public class DefaultEventLoop implements Runnable, EventLoop
         }
       }
 
+      @Override
+      public String toString()
+      {
+        return String.format("connect(%s, %s)", address, l);
+      }
+
     });
   }
 
@@ -336,6 +366,12 @@ public class DefaultEventLoop implements Runnable, EventLoop
             }
           }
         }
+      }
+
+      @Override
+      public String toString()
+      {
+        return String.format("disconnect(%s)", l);
       }
 
     });
@@ -369,6 +405,12 @@ public class DefaultEventLoop implements Runnable, EventLoop
         }
       }
 
+      @Override
+      public String toString()
+      {
+        return String.format("start(%s, %d, %s)", host, port, l);
+      }
+
     });
   }
 
@@ -395,6 +437,12 @@ public class DefaultEventLoop implements Runnable, EventLoop
             }
           }
         }
+      }
+
+      @Override
+      public String toString()
+      {
+        return String.format("stop(%s)", l);
       }
 
     });
