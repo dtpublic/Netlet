@@ -256,7 +256,9 @@ public abstract class AbstractLengthPrependerClient extends com.datatorrent.netl
     }
     else if (cce instanceof IOException) {
       logger.debug("Disconnecting", cce);
-      el.disconnect(this);
+      if (isConnected()) {
+        el.disconnect(this);
+      }
     }
     else {
       DTThrowable.rethrow(cce);

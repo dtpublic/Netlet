@@ -357,6 +357,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
                 return;
               }
             }
+
             try {
               key.attach(Listener.NOOP_CLIENT_LISTENER);
               key.channel().close();
