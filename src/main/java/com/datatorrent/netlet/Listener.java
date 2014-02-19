@@ -122,14 +122,9 @@ public interface Listener
      */
     private void disconnect()
     {
-      if ((key.interestOps() & SelectionKey.OP_WRITE) == 0) {
+      if (!key.isValid() || (key.interestOps() & SelectionKey.OP_WRITE) == 0) {
         disconnected();
-        if (key.isValid()) {
-          key.cancel();
-        }
-
         key.attach(null);
-
         try {
           key.channel().close();
         }

@@ -251,17 +251,19 @@ public abstract class AbstractLengthPrependerClient extends com.datatorrent.netl
   @Override
   public void handleException(Exception cce, DefaultEventLoop el)
   {
-    if (cce instanceof ConnectException) {
-      logger.warn("Connection Failed", cce);
-    }
-    else if (cce instanceof IOException) {
-      logger.debug("Disconnecting", cce);
-      if (isConnected()) {
-        el.disconnect(this);
+    if (key.attachment() == this) {
+      if (cce instanceof IOException) {
+        logger.debug("Disconnecting.", cce);
+        if (isConnected()) {
+          el.disconnect(this);
+        }
+      }
+      else {
+        DTThrowable.rethrow(cce);
       }
     }
     else {
-      DTThrowable.rethrow(cce);
+      logger.debug("Ignoring exception received after discarding the connection.", cce);
     }
   }
 

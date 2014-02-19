@@ -350,20 +350,24 @@ public class DefaultEventLoop implements Runnable, EventLoop
       {
         for (SelectionKey key : selector.keys()) {
           if (key.attachment() == l) {
-            if (key.isValid()) {
-              l.unregistered(key);
-              if ((key.interestOps() & SelectionKey.OP_WRITE) != 0) {
-                key.attach(new Listener.DisconnectingListener(key));
-                return;
-              }
-            }
-
             try {
-              key.attach(Listener.NOOP_CLIENT_LISTENER);
-              key.channel().close();
+              l.unregistered(key);
             }
-            catch (IOException io) {
-              l.handleException(io, DefaultEventLoop.this);
+            finally {
+              if (key.isValid()) {
+                if ((key.interestOps() & SelectionKey.OP_WRITE) != 0) {
+                  key.attach(new Listener.DisconnectingListener(key));
+                  return;
+                }
+              }
+
+              try {
+                key.attach(Listener.NOOP_CLIENT_LISTENER);
+                key.channel().close();
+              }
+              catch (IOException io) {
+                l.handleException(io, DefaultEventLoop.this);
+              }
             }
           }
         }
@@ -457,7 +461,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
   @Override
   public String toString()
   {
-    return "{id=" + id + ", tasks=" + tasks + '}';
+    return "{id=" + id + ", " + tasks + '}';
   }
 
   private static final Logger logger = LoggerFactory.getLogger(DefaultEventLoop.class);
