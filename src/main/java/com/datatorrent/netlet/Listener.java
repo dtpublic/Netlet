@@ -137,8 +137,20 @@ public interface Listener
     @Override
     public void write() throws IOException
     {
-      previous.write();
-      disconnect();
+      try {
+        previous.write();
+      }
+      catch (IOException ex) {
+        key.cancel();
+        throw ex;
+      }
+      catch (RuntimeException re) {
+        key.cancel();
+        throw re;
+      }
+      finally {
+        disconnect();
+      }
     }
 
     @Override
