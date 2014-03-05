@@ -27,4 +27,35 @@ public class DTThrowable
     throw new RuntimeException(cause);
   }
 
+  public static void rethrow(Exception exception)
+  {
+    if (exception instanceof RuntimeException) {
+      throw (RuntimeException)exception;
+    }
+
+    throw new RuntimeException(exception);
+  }
+
+  /**
+   *
+   * @param error
+   * @deprecated Instead "DTThrowable.rethrow(error);" use "throw error;" directly.
+   */
+  @Deprecated
+  public static void rethrow(Error error)
+  {
+    throw error;
+  }
+
+  /**
+   *
+   * @param exception
+   * @deprecated Instead "DTThrowable.rethrow(runtime_exception);" use "throw runtime_exception;" directly.
+   */
+  @Deprecated
+  public static void rethrow(RuntimeException exception)
+  {
+    throw exception;
+  }
+
 }
