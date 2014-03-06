@@ -94,6 +94,18 @@ public class Slice implements Serializable
     return new Slice(Arrays.copyOfRange(buffer, offset, offset + length), 0, length);
   }
 
+  /**
+   * Constructs a new {@code String} by decoding the specified subarray of
+   * bytes using the platform's default charset. In other words it invokes
+   * the constructor String.<init>(buffer, offset, length).
+   *
+   * @return the string object backed by the array.
+   */
+  public String stringValue()
+  {
+    return new String(buffer, offset, length);
+  }
+
   @Override
   public String toString()
   {
