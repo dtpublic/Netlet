@@ -68,10 +68,6 @@ public class Slice implements Serializable
       return false;
     }
 
-    if (this.offset != other.offset) {
-      return false;
-    }
-
     final int offset1 = this.offset;
     final byte[] buffer1 = this.buffer;
     int i = offset1 + this.length;
