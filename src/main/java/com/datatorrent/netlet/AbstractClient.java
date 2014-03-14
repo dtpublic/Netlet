@@ -273,7 +273,7 @@ public abstract class AbstractClient implements ClientListener
   }
 
   @Override
-  public void handleException(Exception cce, DefaultEventLoop el)
+  public void handleException(Exception cce, EventLoop el)
   {
     logger.debug("Collecting exception in {}", throwables.size(), cce);
     throwables.offer(NetletThrowable.Util.rewrap(cce, el));

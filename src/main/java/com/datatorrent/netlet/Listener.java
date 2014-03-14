@@ -12,41 +12,118 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * <p>Listener interface.</p>
+ * An interface common to all the listeners interested in the network events.
  *
  * @author Chetan Narsude <chetan@datatorrent.com>
  * @since 0.3.2
  */
 public interface Listener
 {
-  public void handleException(Exception cce, DefaultEventLoop el);
+  /**
+   * Address the exception thrown which was caught while performing some operation
+   * (networking or application logic) related to underlying connection the listener
+   * is interested in.
+   *
+   * @param exception The exception that was caught by the networking library.
+   * @param eventloop The eventloop with which the connection is registered.
+   */
+  public void handleException(Exception exception, EventLoop eventloop);
 
+  /**
+   * Notify the listener as soon as the underlying connection is registered with
+   * the eventloop to track various events on the connection.
+   * For server, the listener is notified as soon as server binds to the given
+   * interface and is ready to accept new connections.
+   * For clients, the listener is notified as soon as client sends the connect
+   * request to the server. On the server side, as soon as a connection is accepted,
+   * the listener corresponding to the connection is notified. This connection is
+   * treated as if it's a client connection.
+   *
+   * @param key key associated with selectable channel supporting this connection.
+   */
   public void registered(SelectionKey key);
 
+  /**
+   * Notify the listener that underlying channel has ceased tracking various events.
+   * This typically happens with the server when it stops listening, happens with
+   * the client when they disconnect. It's also possible to explicitly unregister
+   * with the eventloop without disconnecting.
+   *
+   * @param key key associated with the selectable channel supporting this connection.
+   */
   public void unregistered(SelectionKey key);
 
+  /**
+   * Interface that listener who is interested in server events must implement.
+   * In addition to common networking events, this listener is also supposed to
+   * provide a mechanism to register listeners which process the events on each
+   * incoming connection.
+   */
   public static interface ServerListener extends Listener
   {
-    public ClientListener getClientConnection(SocketChannel sc, ServerSocketChannel ssc);
+    /**
+     * Get a listener which will process the events coming on the newly connected client
+     * connection.
+     *
+     * @param client Socket channel associated with the newly accepted client connection.
+     * @param server Socket channel associated with the server connection which accepted the client.
+     * @return
+     */
+    public ClientListener getClientConnection(SocketChannel client, ServerSocketChannel server);
 
   }
 
+  /**
+   * Interface that listener who is interested in client events must implement.
+   * There are two types of clients which must implement this listener. The first type
+   * is needed when a connection is established from client software using connect call.
+   * The second type is needed when a server accepts a connection from a remote client.
+   * The local port of this remote client is also treated as a client.
+   */
   public static interface ClientListener extends Listener
   {
+    /**
+     * Callback to notify the listener that underlying channel has some data to read.
+     * Irrespective of the interest, this callback is made on the listener every time
+     * there is data to read. The reason for this decision is that remote disconnections
+     * also result in read event on the local port. So it's listener's responsibility
+     * to take appropriate action if the read was not expected or disconnect to release
+     * local resources if remote disconnection cause the read call.
+     *
+     * @throws IOException
+     */
     public void read() throws IOException;
 
+    /**
+     * Callback to notify that listener that underlying channel has room to write more data.
+     * This callback is made only if the listener has expressed interest in the write
+     * events using selection key provided during registration.
+     *
+     * @throws IOException
+     */
     public void write() throws IOException;
 
+    /**
+     * When a connection is established between client and the server, listeners at both ends
+     * of such a connection are notified.
+     */
     public void connected();
 
+    /**
+     * When the connections between two clients ceases to exist, listeners at both the ends
+     * are notified of this event.
+     */
     public void disconnected();
 
   }
 
+  /**
+   * Listener which ignores all the networking events and exceptions.
+   */
   public static final Listener NOOP_LISTENER = new Listener()
   {
     @Override
-    public void handleException(Exception cce, DefaultEventLoop el)
+    public void handleException(Exception cce, EventLoop el)
     {
     }
 
@@ -61,6 +138,9 @@ public interface Listener
     }
 
   };
+  /**
+   * Client listener which ignores all the client events and exceptions.
+   */
   public static final Listener NOOP_CLIENT_LISTENER = new ClientListener()
   {
     @Override
@@ -74,7 +154,7 @@ public interface Listener
     }
 
     @Override
-    public void handleException(Exception cce, DefaultEventLoop el)
+    public void handleException(Exception cce, EventLoop el)
     {
     }
 
@@ -100,6 +180,16 @@ public interface Listener
 
   };
 
+  /**
+   * Listener to facilitate graceful handling of the events when the disconnection
+   * is initiated by the local end of the connection.
+   * When local end initiates the disconnection, it's possible that before it actually
+   * disconnects, it may receive data, or disconnection request from the other end. It's
+   * also possible that various writers to the connections are not properly talking
+   * to each other and some may continue to write to the connection after after it's
+   * disconnected. This listener ensures that only the writes requested before disconnection
+   * request are processed and others are rejected.
+   */
   static class DisconnectingListener implements ClientListener
   {
     private final ClientListener previous;
@@ -154,7 +244,7 @@ public interface Listener
     }
 
     @Override
-    public void handleException(Exception cce, DefaultEventLoop el)
+    public void handleException(Exception cce, EventLoop el)
     {
       previous.handleException(cce, el);
     }

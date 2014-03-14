@@ -5,9 +5,6 @@
 package com.datatorrent.netlet;
 
 import java.net.InetSocketAddress;
-import java.nio.channels.SelectableChannel;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
 
 import com.datatorrent.netlet.Listener.ClientListener;
 import com.datatorrent.netlet.Listener.ServerListener;
@@ -24,9 +21,9 @@ public interface EventLoop
 
   void disconnect(final ClientListener l);
 
-  void register(ServerSocketChannel channel, Listener l);
+  //void register(ServerSocketChannel channel, Listener l);
 
-  void register(SocketChannel channel, int ops, Listener l);
+  //void register(SocketChannel channel, int ops, Listener l);
 
   void start(final String host, final int port, final ServerListener l);
 
@@ -34,6 +31,6 @@ public interface EventLoop
 
   void submit(Runnable r);
 
-  void unregister(final SelectableChannel c);
+  //void unregister(final SelectableChannel c);
 
 }

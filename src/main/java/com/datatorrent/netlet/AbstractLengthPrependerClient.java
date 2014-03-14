@@ -21,7 +21,7 @@ import java.net.ConnectException;
  * @author Chetan Narsude <chetan@datatorrent.com>
  * @since 0.3.2
  */
-public abstract class AbstractLengthPrependerClient extends com.datatorrent.netlet.AbstractClient
+public abstract class AbstractLengthPrependerClient extends AbstractClient
 {
   protected byte[] buffer;
   protected ByteBuffer byteBuffer;
@@ -249,7 +249,7 @@ public abstract class AbstractLengthPrependerClient extends com.datatorrent.netl
   }
 
   @Override
-  public void handleException(Exception cce, DefaultEventLoop el)
+  public void handleException(Exception cce, EventLoop el)
   {
     if (key.attachment() == this) {
       if (cce instanceof IOException) {

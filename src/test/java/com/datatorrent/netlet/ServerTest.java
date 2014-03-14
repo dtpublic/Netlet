@@ -23,7 +23,7 @@ public class ServerTest
   {
   }
 
-  static class ServerImpl extends Server
+  static class ServerImpl extends AbstractServer
   {
     @Override
     public ClientListener getClientConnection(SocketChannel sc, ServerSocketChannel ssc)

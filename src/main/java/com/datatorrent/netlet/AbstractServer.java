@@ -14,12 +14,12 @@ import org.slf4j.LoggerFactory;
 import com.datatorrent.netlet.Listener.ServerListener;
 
 /**
- * <p>Abstract Server class.</p>
+ * <p>Abstract AbstractServer class.</p>
  *
  * @author Chetan Narsude <chetan@datatorrent.com>
  * @since 0.3.2
  */
-public abstract class Server implements ServerListener
+public abstract class AbstractServer implements ServerListener
 {
   SocketAddress boundAddress;
 
@@ -35,7 +35,7 @@ public abstract class Server implements ServerListener
   }
 
   @Override
-  public void handleException(Exception cce, DefaultEventLoop el)
+  public void handleException(Exception cce, EventLoop el)
   {
     logger.debug("", cce);
   }
@@ -45,5 +45,5 @@ public abstract class Server implements ServerListener
     return boundAddress;
   }
 
-  private static final Logger logger = LoggerFactory.getLogger(Server.class);
+  private static final Logger logger = LoggerFactory.getLogger(AbstractServer.class);
 }
