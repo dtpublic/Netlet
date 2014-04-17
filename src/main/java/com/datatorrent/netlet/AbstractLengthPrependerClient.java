@@ -253,7 +253,7 @@ public abstract class AbstractLengthPrependerClient extends AbstractClient
   {
     if (key.attachment() == this) {
       if (cce instanceof IOException) {
-        logger.debug("Disconnecting.", cce);
+        logger.debug("Disconnecting {} because of an exception.", this, cce);
         if (isConnected()) {
           el.disconnect(this);
         }

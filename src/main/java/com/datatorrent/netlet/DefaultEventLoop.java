@@ -200,11 +200,9 @@ public class DefaultEventLoop implements Runnable, EventLoop
           logger.warn("Unexpected exception not related to SelectionKey", io);
         }
         else {
+          logger.warn("Exception on unregistered SelectionKey {}", sk, io);
           Listener l = (Listener)sk.attachment();
-          if (l == null) {
-            logger.warn("Exception on unregistered SelectionKey", io);
-          }
-          else {
+          if (l != null) {
             l.handleException(io, this);
           }
         }
