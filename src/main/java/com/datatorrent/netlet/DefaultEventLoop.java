@@ -86,7 +86,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
   @SuppressWarnings({"SleepWhileInLoop", "ConstantConditions"})
   private void runEventLoop()
   {
-    logger.debug("Starting {}", this);
+    //logger.debug("Starting {}", this);
     alive = true;
     eventThread = Thread.currentThread();
     boolean wait = true;
@@ -163,7 +163,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
                   break;
 
                 default:
-                  logger.debug("!!!!!! not sure what interest this is {} !!!!!!", Integer.toBinaryString(sk.readyOps()));
+                  logger.warn("!!!!!! not sure what interest this is {} !!!!!!", Integer.toBinaryString(sk.readyOps()));
                   break;
               }
             }
@@ -177,7 +177,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
 
             do {
               Runnable task = tasks.pollUnsafe();
-              logger.debug("{}.run{{}}", task, this);
+              //logger.debug("{}.run{{}}", task, this);
               task.run();
             }
             while (--size > 0);
@@ -208,20 +208,20 @@ public class DefaultEventLoop implements Runnable, EventLoop
         }
 
         if (selectedKeys.isEmpty()) {
-          logger.debug("idle {}", this);
+          //logger.debug("idle {}", this);
           wait = true;
         }
       }
     }
     while (alive);
-    logger.debug("Terminated {}", this);
+    //logger.debug("Terminated {}", this);
   }
 
   @Override
   public void submit(Runnable r)
   {
     Thread currentThread = Thread.currentThread();
-    logger.debug("{}.{}.{}", currentThread, r, eventThread);
+    //logger.debug("{}.{}.{}", currentThread, r, eventThread);
     if (tasks.isEmpty() && eventThread == currentThread) {
       r.run();
     }
