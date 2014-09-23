@@ -44,6 +44,13 @@ public class Slice implements Serializable
     this.length = length;
   }
 
+  public Slice(byte[] array)
+  {
+    buffer = array;
+    this.offset = 0;
+    this.length = array.length;
+  }
+
   @Override
   public int hashCode()
   {
