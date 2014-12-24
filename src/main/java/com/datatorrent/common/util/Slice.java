@@ -91,12 +91,17 @@ public class Slice implements Serializable, Cloneable
     return true;
   }
 
+  /**
+   * Create deep copy of the slice.
+   * @return
+   * @throws CloneNotSupportedException
+   */
   @Override
   public Slice clone() throws CloneNotSupportedException
   {
     Slice clone = (Slice)super.clone();
     clone.buffer = buffer.clone();
-    return new Slice(Arrays.copyOfRange(buffer, offset, offset + length), 0, length);
+    return clone;
   }
 
   public byte[] toByteArray()
