@@ -25,7 +25,7 @@ import org.getopt.util.hash.MurmurHash;
  *
  * @since 0.3.2
  */
-public class Slice implements Serializable
+public class Slice implements Serializable, Cloneable
 {
   public byte[] buffer;
   public int offset;
@@ -92,8 +92,10 @@ public class Slice implements Serializable
   }
 
   @Override
-  public Slice clone()
+  public Slice clone() throws CloneNotSupportedException
   {
+    Slice clone = (Slice)super.clone();
+    clone.buffer = buffer.clone();
     return new Slice(Arrays.copyOfRange(buffer, offset, offset + length), 0, length);
   }
 
