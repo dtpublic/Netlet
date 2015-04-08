@@ -18,7 +18,8 @@ import com.datatorrent.netlet.NetletThrowable.NetletRuntimeException;
 import com.datatorrent.netlet.util.CircularBuffer;
 
 /**
- * <p>Abstract AbstractClient class.</p>
+ * <p>
+ * Abstract AbstractClient class.</p>
  *
  * @author Chetan Narsude <chetan@datatorrent.com>
  * @since 0.3.2
@@ -26,7 +27,8 @@ import com.datatorrent.netlet.util.CircularBuffer;
 public abstract class AbstractClient implements ClientListener
 {
   private static final int THROWABLES_COLLECTION_SIZE = 4;
-  public static final int MAX_SENDBUFFER_SIZE = 32 * 1024;
+  public static final int MAX_SENDBUFFER_SIZE;
+
   protected final CircularBuffer<NetletThrowable> throwables;
   protected final CircularBuffer<CircularBuffer<Slice>> bufferOfBuffers;
   protected final CircularBuffer<Slice> freeBuffer;
@@ -325,4 +327,21 @@ public abstract class AbstractClient implements ClientListener
   }
 
   private static final Logger logger = LoggerFactory.getLogger(AbstractClient.class);
+
+  /* implemented here since it requires access to logger. */
+  static {
+    int size = 32 * 1024;
+    final String key = "NETLET.MAX_SENDBUFFER_SIZE";
+    String property = System.getProperty(key);
+    if (property != null) {
+      try {
+        size = Integer.parseInt(property);
+      }
+      catch (Exception exception) {
+        logger.warn("{} set to {} since {} could not be parsed as an integer.", key, size, property, exception);
+      }
+    }
+    MAX_SENDBUFFER_SIZE = size;
+  }
+
 }
