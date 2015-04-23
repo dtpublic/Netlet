@@ -336,6 +336,20 @@ public abstract class AbstractClient implements ClientListener
     if (property != null) {
       try {
         size = Integer.parseInt(property);
+        if (size <= 0) {
+          throw new IllegalArgumentException(key + " needs to be a positive integer which is also power of 2.");
+        }
+
+        if ((size & (size - 1)) != 0) {
+          size--;
+          size |= size >> 1;
+          size |= size >> 2;
+          size |= size >> 4;
+          size |= size >> 8;
+          size |= size >> 16;
+          size++;
+          logger.warn("{} set to {} since {} is not power of 2.", key, size, property);
+        }
       }
       catch (Exception exception) {
         logger.warn("{} set to {} since {} could not be parsed as an integer.", key, size, property, exception);
