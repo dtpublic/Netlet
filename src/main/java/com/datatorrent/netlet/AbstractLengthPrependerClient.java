@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory;
 
 import com.datatorrent.common.util.VarInt;
 import java.io.IOException;
-import java.net.ConnectException;
 
 /**
  * <p>Abstract AbstractLengthPrependerClient class.</p>
