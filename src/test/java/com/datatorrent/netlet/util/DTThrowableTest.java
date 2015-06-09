@@ -13,31 +13,54 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.getopt.util.hash;
-
+package com.datatorrent.netlet.util;
 
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class MurmurHashTest
+import static com.datatorrent.netlet.util.DTThrowable.rethrow;
+
+public class DTThrowableTest
 {
-  static int NUM = 1000;
-
-
   @Test
-  public void testHash()
+  public void testRethrow_Throwable()
   {
-    byte[] bytes = new byte[4];
-    for (int i = 0; i < NUM; i++) {
-      bytes[0] = (byte)(i & 0xff);
-      bytes[1] = (byte)((i & 0xff00) >> 8);
-      bytes[2] = (byte)((i & 0xff0000) >> 16);
-      bytes[3] = (byte)((i & 0xff000000) >> 24);
-      logger.debug(Integer.toHexString(i) + " " + Integer.toHexString(MurmurHash.hash(bytes, 1)));
-      // do some kind of test here!
+    try {
+    }
+    catch (Throwable th) {
+      rethrow(th);
     }
   }
 
-  private static final Logger logger = LoggerFactory.getLogger(MurmurHashTest.class);
+  @Test
+  public void testRethrow_Exception()
+  {
+    try {
+    }
+    catch (Exception th) {
+      rethrow(th);
+    }
+  }
+
+  @Test
+  @SuppressWarnings("deprecation")
+  public void testRethrow_Error()
+  {
+    try {
+    }
+    catch (Error th) {
+      rethrow(th);
+    }
+  }
+
+  @Test
+  @SuppressWarnings("deprecation")
+  public void testRethrow_RuntimeException()
+  {
+    try {
+    }
+    catch (RuntimeException th) {
+      rethrow(th);
+    }
+  }
+
 }

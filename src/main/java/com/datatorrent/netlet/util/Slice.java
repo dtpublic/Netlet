@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datatorrent.common.util;
+package com.datatorrent.netlet.util;
 
 import java.io.Serializable;
 import java.util.Arrays;
@@ -23,7 +23,7 @@ import org.getopt.util.hash.MurmurHash;
 /**
  * <p>Slice class.</p>
  *
- * @since 0.3.2
+ * @since 1.0.0
  */
 public class Slice implements Serializable, Cloneable
 {
@@ -112,7 +112,7 @@ public class Slice implements Serializable, Cloneable
   /**
    * Constructs a new {@code String} by decoding the specified subarray of
    * bytes using the platform's default charset. In other words it invokes
-   * the constructor String.<init>(buffer, offset, length).
+   * the constructor String(buffer, offset, length).
    *
    * @return the string object backed by the array.
    */
@@ -122,9 +122,10 @@ public class Slice implements Serializable, Cloneable
   }
 
   @Override
+  @SuppressWarnings("ImplicitArrayToString")
   public String toString()
   {
-    return "Slice{" + (length > 256 ? "buffer=" + buffer + ", offset=" + offset + ", length=" + length : Arrays.toString(Arrays.copyOfRange(buffer, offset, offset + length))) + '}';
+    return getClass().getSimpleName() + '{' + (length > 256 ? "buffer=" + buffer + ", offset=" + offset + ", length=" + length : Arrays.toString(Arrays.copyOfRange(buffer, offset, offset + length))) + '}';
   }
 
   private static final long serialVersionUID = 201311151835L;
