@@ -25,7 +25,19 @@ package com.datatorrent.netlet.util;
  */
 public class DTThrowable
 {
+  @SuppressWarnings("ThrowableResultIgnored")
   public static void rethrow(Throwable cause)
+  {
+    wrapIfChecked(cause);
+  }
+
+  @SuppressWarnings("ThrowableResultIgnored")
+  public static void rethrow(Exception exception)
+  {
+    wrapIfChecked(exception);
+  }
+
+  public static RuntimeException wrapIfChecked(Throwable cause)
   {
     if (cause instanceof Error) {
       throw (Error)cause;
@@ -38,13 +50,37 @@ public class DTThrowable
     throw new RuntimeException(cause);
   }
 
-  public static void rethrow(Exception exception)
+  public static RuntimeException wrapIfChecked(Exception exception)
   {
     if (exception instanceof RuntimeException) {
       throw (RuntimeException)exception;
     }
 
     throw new RuntimeException(exception);
+  }
+
+  /**
+   *
+   * @param error
+   * @return
+   * @deprecated Error does not need to be wrapped; Instead of "DTThrowable.wrapIfChecked(error);" use "throw error;" directly.
+   */
+  @Deprecated
+  public static RuntimeException wrapIfChecked(Error error)
+  {
+    throw error;
+  }
+
+  /**
+   *
+   * @param exception
+   * @return
+   * @deprecated Unchecked exception (subclass of RuntimeException) does not need to be wrapped; Instead of "DTThrowable.rethrow(runtime_exception);" use "throw runtime_exception;" directly.
+   */
+  @Deprecated
+  public static RuntimeException wrapIfChecked(RuntimeException exception)
+  {
+    throw exception;
   }
 
   /**
