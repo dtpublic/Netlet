@@ -22,6 +22,8 @@ import java.nio.channels.SocketChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datatorrent.netlet.datagram.DatagramConnectionChannel;
+
 /**
  * An interface common to all the listeners interested in the network events.
  *
@@ -81,6 +83,11 @@ public interface Listener
      */
     public ClientListener getClientConnection(SocketChannel client, ServerSocketChannel server);
 
+  }
+
+  public static interface UDPServerListener extends Listener
+  {
+    public ClientListener getClientConnection(DatagramConnectionChannel client);
   }
 
   /**

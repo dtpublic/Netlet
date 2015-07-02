@@ -16,12 +16,16 @@
 package com.datatorrent.netlet;
 
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import static java.lang.Thread.sleep;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.datatorrent.netlet.datagram.DatagramConnectionChannel;
+
+import static java.lang.Thread.sleep;
 
 
 public class ServerTest
@@ -44,6 +48,34 @@ public class ServerTest
       return "ServerImpl{" + '}';
     }
 
+  }
+
+  static class UDPServerImpl implements Listener.UDPServerListener
+  {
+
+    @Override
+    public ClientListener getClientConnection(DatagramConnectionChannel client)
+    {
+      return new EchoClient();
+    }
+
+    @Override
+    public void handleException(Exception exception, EventLoop eventloop)
+    {
+
+    }
+
+    @Override
+    public void registered(SelectionKey key)
+    {
+
+    }
+
+    @Override
+    public void unregistered(SelectionKey key)
+    {
+
+    }
   }
 
   static class EchoClient extends AbstractClient

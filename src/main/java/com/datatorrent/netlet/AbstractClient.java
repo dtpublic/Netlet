@@ -17,8 +17,10 @@ package com.datatorrent.netlet;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import java.nio.channels.WritableByteChannel;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -111,7 +113,7 @@ public abstract class AbstractClient implements ClientListener
   @Override
   public final void read() throws IOException
   {
-    SocketChannel channel = (SocketChannel)key.channel();
+    ReadableByteChannel channel = (ReadableByteChannel)key.channel();
     int read;
     if ((read = channel.read(buffer())) > 0) {
       this.read(read);
@@ -171,7 +173,7 @@ public abstract class AbstractClient implements ClientListener
      */
     writeBuffer.flip();
 
-    SocketChannel channel = (SocketChannel)key.channel();
+    WritableByteChannel channel = (WritableByteChannel)key.channel();
     while ((remaining = writeBuffer.remaining()) > 0) {
       remaining -= channel.write(writeBuffer);
       if (remaining > 0) {
