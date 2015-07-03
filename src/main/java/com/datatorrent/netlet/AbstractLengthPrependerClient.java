@@ -37,7 +37,7 @@ public abstract class AbstractLengthPrependerClient extends AbstractClient
   protected int size, writeOffset, readOffset;
 
   protected enum ReadStatus {
-    CONTINUE, END;
+    CONTINUE, FINISH;
   }
 
   public AbstractLengthPrependerClient()
@@ -151,7 +151,7 @@ public abstract class AbstractLengthPrependerClient extends AbstractClient
 
       if (writeOffset - readOffset >= size) {
         ReadStatus readStatus = onMessage(buffer, readOffset, size);
-        if (readStatus != ReadStatus.END)
+        if (readStatus != ReadStatus.FINISH)
         {
           readOffset += size;
           size = 0;
