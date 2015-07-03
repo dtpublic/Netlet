@@ -15,15 +15,15 @@
  */
 package com.datatorrent.netlet;
 
-import com.datatorrent.netlet.util.DTThrowable;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datatorrent.netlet.util.DTThrowable;
 import com.datatorrent.netlet.util.VarInt;
-import java.io.IOException;
 
 /**
  * <p>Abstract AbstractLengthPrependerClient class.</p>
@@ -35,6 +35,10 @@ public abstract class AbstractLengthPrependerClient extends AbstractClient
   protected byte[] buffer;
   protected ByteBuffer byteBuffer;
   protected int size, writeOffset, readOffset;
+
+  protected enum ReadStatus {
+    CONTINUE, END;
+  }
 
   public AbstractLengthPrependerClient()
   {
@@ -146,9 +150,16 @@ public abstract class AbstractLengthPrependerClient extends AbstractClient
       }
 
       if (writeOffset - readOffset >= size) {
-        onMessage(buffer, readOffset, size);
-        readOffset += size;
-        size = 0;
+        ReadStatus readStatus = onMessage(buffer, readOffset, size);
+        if (readStatus != ReadStatus.END)
+        {
+          readOffset += size;
+          size = 0;
+        }
+        else
+        {
+          readOffset = writeOffset;
+        }
       }
       else if (writeOffset == buffer.length) {
         if (size > buffer.length) {
@@ -251,7 +262,7 @@ public abstract class AbstractLengthPrependerClient extends AbstractClient
   {
   }
 
-  public abstract void onMessage(byte[] buffer, int offset, int size);
+  public abstract ReadStatus onMessage(byte[] buffer, int offset, int size);
 
   public void endMessage()
   {
