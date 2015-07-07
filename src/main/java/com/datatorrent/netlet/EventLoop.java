@@ -27,7 +27,7 @@ import com.datatorrent.netlet.Listener.ServerListener;
  */
 public interface EventLoop
 {
-  void connect(final InetSocketAddress address, final Listener l);
+  void connect(final InetSocketAddress address, final ClientListener l);
 
   void disconnect(final ClientListener l);
 

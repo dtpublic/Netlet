@@ -223,7 +223,7 @@ public interface Listener
     private void disconnect()
     {
       if (!key.isValid() || (key.interestOps() & SelectionKey.OP_WRITE) == 0) {
-        disconnected();
+        previous.disconnected();
         key.attach(null);
         try {
           key.channel().close();
