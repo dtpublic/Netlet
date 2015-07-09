@@ -140,7 +140,6 @@ public class DefaultEventLoop implements Runnable, EventLoop
                 case SelectionKey.OP_CONNECT:
                   if (((SocketChannel)sk.channel()).finishConnect()) {
                     ((ClientListener)sk.attachment()).connected();
-                    sk.interestOps(SelectionKey.OP_READ | SelectionKey.OP_WRITE);
                   }
                   break;
 
@@ -162,7 +161,6 @@ public class DefaultEventLoop implements Runnable, EventLoop
                 case SelectionKey.OP_READ | SelectionKey.OP_WRITE | SelectionKey.OP_CONNECT:
                   if (((SocketChannel)sk.channel()).finishConnect()) {
                     ((ClientListener)sk.attachment()).connected();
-                    sk.interestOps(SelectionKey.OP_READ | SelectionKey.OP_WRITE);
                     if (sk.isWritable()) {
                       ((ClientListener)sk.attachment()).write();
                     }
@@ -305,7 +303,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
   }
 
   @Override
-  public final void connect(final InetSocketAddress address, final Listener l)
+  public final void connect(final InetSocketAddress address, final ClientListener l)
   {
     submit(new Runnable()
     {
@@ -317,13 +315,83 @@ public class DefaultEventLoop implements Runnable, EventLoop
           channel = SocketChannel.open();
           channel.configureBlocking(false);
           if (channel.connect(address)) {
-            if (l instanceof ClientListener) {
-              ((ClientListener)l).connected();
-              register(channel, SelectionKey.OP_READ, l);
-            }
+            l.connected();
+            register(channel, SelectionKey.OP_READ, l);
           }
           else {
-            register(channel, SelectionKey.OP_CONNECT, l);
+            /*
+             * According to the spec SelectionKey.OP_READ is not necessary here, but without it
+             * occasionally channel key will not be selected after connection is established and finishConnect()
+             * will return true.
+             */
+            register(channel, SelectionKey.OP_CONNECT | SelectionKey.OP_READ, new ClientListener()
+            {
+              private SelectionKey key;
+
+              @Override
+              public void read() throws IOException
+              {
+                logger.debug("missing OP_CONNECT {}", l);
+                connected();
+                l.read();
+              }
+
+              @Override
+              public void write() throws IOException
+              {
+                logger.debug("missing OP_CONNECT {}", l);
+                connected();
+                l.write();
+              }
+
+              @Override
+              public void connected()
+              {
+                logger.debug("{}->{}", this, l);
+                key.attach(l);
+                l.connected();
+                key.interestOps(SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+              }
+
+              @Override
+              public void disconnected()
+              {
+                /*
+                 * Expectation is that connected() or read() will be called and this ClientListener will be replaced
+                 * by the original ClientListener in the key attachment before disconnect is initiated. In any case
+                 * as original Client Listener was never attached to the key, this method will never be called. Please
+                 * see DefaultEventLoop.disconnect().
+                 */
+                logger.debug("missing OP_CONNECT {}", l);
+                throw new NotYetConnectedException();
+              }
+
+              @Override
+              public void handleException(Exception exception, EventLoop eventloop)
+              {
+                key.attach(l);
+                l.handleException(exception, eventloop);
+              }
+
+              @Override
+              public void registered(SelectionKey key)
+              {
+                l.registered(this.key = key);
+              }
+
+              @Override
+              public void unregistered(SelectionKey key)
+              {
+                l.unregistered(key);
+              }
+
+              @Override
+              public String toString()
+              {
+                return "Pre-connect Client listener for " + l.toString();
+              }
+
+            });
           }
         }
         catch (IOException ie) {
