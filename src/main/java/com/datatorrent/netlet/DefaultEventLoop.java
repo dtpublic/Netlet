@@ -19,8 +19,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.*;
 import java.nio.channels.spi.AbstractSelectableChannel;
-import java.util.Iterator;
-import java.util.Set;
+import java.util.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,21 +29,23 @@ import com.datatorrent.netlet.Listener.ServerListener;
 import com.datatorrent.netlet.util.CircularBuffer;
 
 /**
- * <p>DefaultEventLoop class.</p>
+ * <p>
+ * DefaultEventLoop class.</p>
  *
  * @since 1.0.0
  */
 public class DefaultEventLoop implements Runnable, EventLoop
 {
   public final String id;
+  private final Selector selector;
+  private final CircularBuffer<Runnable> tasks;
   private boolean alive;
   private int refCount;
-  private final Selector selector;
   private Thread eventThread;
-  private final CircularBuffer<Runnable> tasks = new CircularBuffer<Runnable>(1024, 5);
 
   public DefaultEventLoop(String id) throws IOException
   {
+    this.tasks = new CircularBuffer<Runnable>(1024, 5);
     this.id = id;
     selector = Selector.open();
   }
@@ -99,125 +100,209 @@ public class DefaultEventLoop implements Runnable, EventLoop
     //logger.debug("Starting {}", this);
     alive = true;
     eventThread = Thread.currentThread();
-    boolean wait = true;
+
+    final Iterator<SelectionKey> EMPTY_ITERATOR = new Iterator<SelectionKey>()
+    {
+
+      @Override
+      public boolean hasNext()
+      {
+        return false;
+      }
+
+      @Override
+      public SelectionKey next()
+      {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+      }
+
+      @Override
+      public void remove()
+      {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+      }
+
+    };
+
+    final Set<SelectionKey> EMPTY_SET = new Set<SelectionKey>()
+    {
+      @Override
+      public int size()
+      {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+      }
+
+      @Override
+      public boolean isEmpty()
+      {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+      }
+
+      @Override
+      public boolean contains(Object o)
+      {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+      }
+
+      @Override
+      public Iterator<SelectionKey> iterator()
+      {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+      }
+
+      @Override
+      public Object[] toArray()
+      {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+      }
+
+      @Override
+      public <T> T[] toArray(T[] a)
+      {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+      }
+
+      @Override
+      public boolean add(SelectionKey e)
+      {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+      }
+
+      @Override
+      public boolean remove(Object o)
+      {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+      }
+
+      @Override
+      public boolean containsAll(Collection<?> c)
+      {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+      }
+
+      @Override
+      public boolean addAll(Collection<? extends SelectionKey> c)
+      {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+      }
+
+      @Override
+      public boolean retainAll(Collection<?> c)
+      {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+      }
+
+      @Override
+      public boolean removeAll(Collection<?> c)
+      {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+      }
+
+      @Override
+      public void clear()
+      {
+      }
+
+    };
 
     SelectionKey sk = null;
-    Set<SelectionKey> selectedKeys = null;
-    Iterator<SelectionKey> iterator = null;
+    Set<SelectionKey> selectedKeys = EMPTY_SET;
+    Iterator<SelectionKey> iterator = EMPTY_ITERATOR;
 
     do {
       try {
         do {
-          if (wait) {
-            if (selector.selectNow() > 0) {
+          if (!iterator.hasNext()) {
+            int size = tasks.size();
+            if (size > 0) {
+              do {
+                tasks.pollUnsafe().run();
+              }
+              while (--size > 0);
+              size = selector.selectNow();
+            }
+            else {
+              size = selector.select(100);
+            }
+
+            if (size > 0) {
               selectedKeys = selector.selectedKeys();
               iterator = selectedKeys.iterator();
             }
             else {
-              iterator = null;
+              iterator = EMPTY_ITERATOR;
             }
           }
 
-          if (iterator != null) {
-            wait = false;
+          while (iterator.hasNext()) {
+            if (!(sk = iterator.next()).isValid()) {
+              continue;
+            }
 
-            while (iterator.hasNext()) {
-              if (!(sk = iterator.next()).isValid()) {
-                continue;
-              }
+            ClientListener l;
+            switch (sk.readyOps()) {
+              case SelectionKey.OP_ACCEPT:
+                ServerSocketChannel ssc = (ServerSocketChannel)sk.channel();
+                SocketChannel sc = ssc.accept();
+                sc.configureBlocking(false);
+                ServerListener sl = (ServerListener)sk.attachment();
+                l = sl.getClientConnection(sc, (ServerSocketChannel)sk.channel());
+                register(sc, SelectionKey.OP_READ | SelectionKey.OP_WRITE, l);
+                break;
 
-              ClientListener l;
-              switch (sk.readyOps()) {
-                case SelectionKey.OP_ACCEPT:
-                  ServerSocketChannel ssc = (ServerSocketChannel)sk.channel();
-                  SocketChannel sc = ssc.accept();
-                  sc.configureBlocking(false);
-                  ServerListener sl = (ServerListener)sk.attachment();
-                  l = sl.getClientConnection(sc, (ServerSocketChannel)sk.channel());
-                  register(sc, SelectionKey.OP_READ | SelectionKey.OP_WRITE, l);
-                  break;
+              case SelectionKey.OP_CONNECT:
+                if (((SocketChannel)sk.channel()).finishConnect()) {
+                  ((ClientListener)sk.attachment()).connected();
+                }
+                break;
 
-                case SelectionKey.OP_CONNECT:
-                  if (((SocketChannel)sk.channel()).finishConnect()) {
-                    ((ClientListener)sk.attachment()).connected();
+              case SelectionKey.OP_READ:
+                ((ClientListener)sk.attachment()).read();
+                break;
+
+              case SelectionKey.OP_WRITE:
+                ((ClientListener)sk.attachment()).write();
+                break;
+
+              case SelectionKey.OP_READ | SelectionKey.OP_WRITE:
+                (l = (ClientListener)sk.attachment()).write();
+                l.read();
+                break;
+
+              case SelectionKey.OP_WRITE | SelectionKey.OP_CONNECT:
+              case SelectionKey.OP_READ | SelectionKey.OP_CONNECT:
+              case SelectionKey.OP_READ | SelectionKey.OP_WRITE | SelectionKey.OP_CONNECT:
+                if (((SocketChannel)sk.channel()).finishConnect()) {
+                  ((ClientListener)sk.attachment()).connected();
+                  if (sk.isWritable()) {
+                    ((ClientListener)sk.attachment()).write();
                   }
-                  break;
-
-                case SelectionKey.OP_READ:
-                  ((ClientListener)sk.attachment()).read();
-                  break;
-
-                case SelectionKey.OP_WRITE:
-                  ((ClientListener)sk.attachment()).write();
-                  break;
-
-                case SelectionKey.OP_READ | SelectionKey.OP_WRITE:
-                  (l = (ClientListener)sk.attachment()).write();
-                  l.read();
-                  break;
-
-                case SelectionKey.OP_WRITE | SelectionKey.OP_CONNECT:
-                case SelectionKey.OP_READ | SelectionKey.OP_CONNECT:
-                case SelectionKey.OP_READ | SelectionKey.OP_WRITE | SelectionKey.OP_CONNECT:
-                  if (((SocketChannel)sk.channel()).finishConnect()) {
-                    ((ClientListener)sk.attachment()).connected();
-                    if (sk.isWritable()) {
-                      ((ClientListener)sk.attachment()).write();
-                    }
-                    if (sk.isReadable()) {
-                      ((ClientListener)sk.attachment()).read();
-                    }
+                  if (sk.isReadable()) {
+                    ((ClientListener)sk.attachment()).read();
                   }
-                  break;
+                }
+                break;
 
-                default:
-                  logger.warn("!!!!!! not sure what interest this is {} !!!!!!", Integer.toBinaryString(sk.readyOps()));
-                  break;
-              }
+              default:
+                logger.warn("!!!!!! not sure what interest this is {} !!!!!!", Integer.toBinaryString(sk.readyOps()));
+                break;
             }
-
-            selectedKeys.clear();
           }
 
-          int size = tasks.size();
-          if (size > 0) {
-            wait = false;
-
-            do {
-              Runnable task = tasks.pollUnsafe();
-              //logger.debug("{}.run{{}}", task, this);
-              task.run();
-            }
-            while (--size > 0);
-          }
-
-          if (wait) {
-            Thread.sleep(5);
-          }
-          else {
-            wait = true;
-          }
+          selectedKeys.clear();
         }
         while (alive);
       }
-      catch (InterruptedException ie) {
-        throw new RuntimeException("Interrupted!", ie);
-      }
-      catch (Exception io) {
+      catch (Exception ex) {
         if (sk == null) {
-          logger.warn("Unexpected exception not related to SelectionKey", io);
+          logger.warn("Unexpected exception not related to SelectionKey", ex);
         }
         else {
-          logger.warn("Exception on unregistered SelectionKey {}", sk, io);
+          logger.warn("Exception on unregistered SelectionKey {}", sk, ex);
           Listener l = (Listener)sk.attachment();
           if (l != null) {
-            l.handleException(io, this);
+            l.handleException(ex, this);
           }
-        }
-
-        if (selectedKeys.isEmpty()) {
-          //logger.debug("idle {}", this);
-          wait = true;
         }
       }
     }
@@ -430,19 +515,23 @@ public class DefaultEventLoop implements Runnable, EventLoop
               l.unregistered(key);
             }
             finally {
+
+              boolean disconnected = true;
               if (key.isValid()) {
                 if ((key.interestOps() & SelectionKey.OP_WRITE) != 0) {
                   key.attach(new Listener.DisconnectingListener(key));
-                  return;
+                  disconnected = false;
                 }
               }
 
-              try {
-                key.attach(Listener.NOOP_CLIENT_LISTENER);
-                key.channel().close();
-              }
-              catch (IOException io) {
-                l.handleException(io, DefaultEventLoop.this);
+              if (disconnected) {
+                try {
+                  key.attach(Listener.NOOP_CLIENT_LISTENER);
+                  key.channel().close();
+                }
+                catch (IOException io) {
+                  l.handleException(io, DefaultEventLoop.this);
+                }
               }
             }
           }
