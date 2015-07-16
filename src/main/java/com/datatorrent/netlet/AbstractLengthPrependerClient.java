@@ -15,15 +15,15 @@
  */
 package com.datatorrent.netlet;
 
-import com.datatorrent.netlet.util.DTThrowable;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datatorrent.netlet.util.DTThrowable;
 import com.datatorrent.netlet.util.VarInt;
-import java.io.IOException;
 
 /**
  * <p>Abstract AbstractLengthPrependerClient class.</p>
@@ -249,6 +249,10 @@ public abstract class AbstractLengthPrependerClient extends AbstractClient
 
   public void beginMessage()
   {
+  }
+
+  protected void endRead() {
+    readOffset = writeOffset - size;
   }
 
   public abstract void onMessage(byte[] buffer, int offset, int size);
