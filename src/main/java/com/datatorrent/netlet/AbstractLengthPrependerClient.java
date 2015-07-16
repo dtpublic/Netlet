@@ -36,10 +36,6 @@ public abstract class AbstractLengthPrependerClient extends AbstractClient
   protected ByteBuffer byteBuffer;
   protected int size, writeOffset, readOffset;
 
-  protected enum ReadStatus {
-    CONTINUE, FINISH;
-  }
-
   public AbstractLengthPrependerClient()
   {
     this(new byte[64 * 1024], 0, 1024);
@@ -150,16 +146,9 @@ public abstract class AbstractLengthPrependerClient extends AbstractClient
       }
 
       if (writeOffset - readOffset >= size) {
-        ReadStatus readStatus = onMessage(buffer, readOffset, size);
-        if (readStatus != ReadStatus.FINISH)
-        {
-          readOffset += size;
-          size = 0;
-        }
-        else
-        {
-          readOffset = writeOffset;
-        }
+        onMessage(buffer, readOffset, size);
+        readOffset += size;
+        size = 0;
       }
       else if (writeOffset == buffer.length) {
         if (size > buffer.length) {
@@ -262,7 +251,11 @@ public abstract class AbstractLengthPrependerClient extends AbstractClient
   {
   }
 
-  public abstract ReadStatus onMessage(byte[] buffer, int offset, int size);
+  protected void finishRead() {
+    readOffset = writeOffset - size;
+  }
+
+  public abstract void onMessage(byte[] buffer, int offset, int size);
 
   public void endMessage()
   {
