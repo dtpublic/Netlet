@@ -251,7 +251,7 @@ public abstract class AbstractLengthPrependerClient extends AbstractClient
   {
   }
 
-  protected void finishRead() {
+  protected void endRead() {
     readOffset = writeOffset - size;
   }
 
