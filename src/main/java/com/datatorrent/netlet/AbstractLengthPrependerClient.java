@@ -15,15 +15,15 @@
  */
 package com.datatorrent.netlet;
 
-import com.datatorrent.netlet.util.DTThrowable;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datatorrent.netlet.util.DTThrowable;
 import com.datatorrent.netlet.util.VarInt;
-import java.io.IOException;
 
 /**
  * <p>Abstract AbstractLengthPrependerClient class.</p>
@@ -249,6 +249,21 @@ public abstract class AbstractLengthPrependerClient extends AbstractClient
 
   public void beginMessage()
   {
+  }
+
+  /**
+   * Discard remaining data currently in the read buffer.
+   *<br><br>
+   * This method can be called from within an {@link #onMessage} call to discard the remaining data currently in the read
+   * buffer and not process the remaining messages using the {@link #onMessage} call.
+   *<br><br>
+   * A scenario in which this can be used is where multiple clients are chained together to process the messages. Each
+   * client once it processes the messages it is responsible for transfers control to the next client in the chain to process
+   * the rest of the data. The remaining data is copied over to the next client. This method can then be called to discard
+   * the remaining data from this client so that it is not processed again in this client.
+   */
+  protected void discardReadBuffer() {
+    readOffset = writeOffset - size;
   }
 
   public abstract void onMessage(byte[] buffer, int offset, int size);
