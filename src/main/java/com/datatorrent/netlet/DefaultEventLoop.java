@@ -50,11 +50,12 @@ public class DefaultEventLoop implements Runnable, EventLoop
     selector = Selector.open();
   }
 
-  public synchronized void start()
+  public synchronized Thread start()
   {
     if (++refCount == 1) {
-      new Thread(this, id).start();
+      (eventThread = new Thread(this, id)).start();
     }
+    return eventThread;
   }
 
   public void stop()
@@ -91,6 +92,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
         alive = false;
         logger.warn("Unexpected termination of {}", this);
       }
+      eventThread = null;
     }
   }
 
@@ -98,8 +100,16 @@ public class DefaultEventLoop implements Runnable, EventLoop
   private void runEventLoop()
   {
     //logger.debug("Starting {}", this);
+    synchronized (this) {
+      if (eventThread == null) {
+        refCount++;
+        eventThread = Thread.currentThread();
+      } else if (eventThread != Thread.currentThread()) {
+        throw new IllegalStateException("DefaultEventLoop can not run in two [" + eventThread.getName() + "] and ["
+                + Thread.currentThread().getName() + "] threads.");
+      }
+    }
     alive = true;
-    eventThread = Thread.currentThread();
 
     final Iterator<SelectionKey> EMPTY_ITERATOR = new Iterator<SelectionKey>()
     {
@@ -239,14 +249,13 @@ public class DefaultEventLoop implements Runnable, EventLoop
               continue;
             }
 
-            ClientListener l;
             switch (sk.readyOps()) {
               case SelectionKey.OP_ACCEPT:
                 ServerSocketChannel ssc = (ServerSocketChannel)sk.channel();
                 SocketChannel sc = ssc.accept();
                 sc.configureBlocking(false);
-                ServerListener sl = (ServerListener)sk.attachment();
-                l = sl.getClientConnection(sc, (ServerSocketChannel)sk.channel());
+                final ServerListener sl = (ServerListener)sk.attachment();
+                final ClientListener l = sl.getClientConnection(sc, (ServerSocketChannel)sk.channel());
                 register(sc, SelectionKey.OP_READ | SelectionKey.OP_WRITE, l);
                 break;
 
@@ -265,8 +274,8 @@ public class DefaultEventLoop implements Runnable, EventLoop
                 break;
 
               case SelectionKey.OP_READ | SelectionKey.OP_WRITE:
-                (l = (ClientListener)sk.attachment()).write();
-                l.read();
+                ((ClientListener)sk.attachment()).read();
+                ((ClientListener)sk.attachment()).write();
                 break;
 
               case SelectionKey.OP_WRITE | SelectionKey.OP_CONNECT:
@@ -274,11 +283,11 @@ public class DefaultEventLoop implements Runnable, EventLoop
               case SelectionKey.OP_READ | SelectionKey.OP_WRITE | SelectionKey.OP_CONNECT:
                 if (((SocketChannel)sk.channel()).finishConnect()) {
                   ((ClientListener)sk.attachment()).connected();
-                  if (sk.isWritable()) {
-                    ((ClientListener)sk.attachment()).write();
-                  }
                   if (sk.isReadable()) {
                     ((ClientListener)sk.attachment()).read();
+                  }
+                  if (sk.isWritable()) {
+                    ((ClientListener)sk.attachment()).write();
                   }
                 }
                 break;
@@ -416,7 +425,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
               @Override
               public void read() throws IOException
               {
-                logger.debug("missing OP_CONNECT {}", l);
+                logger.debug("missing OP_CONNECT");
                 connected();
                 l.read();
               }
@@ -424,7 +433,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
               @Override
               public void write() throws IOException
               {
-                logger.debug("missing OP_CONNECT {}", l);
+                logger.debug("missing OP_CONNECT");
                 connected();
                 l.write();
               }
@@ -432,7 +441,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
               @Override
               public void connected()
               {
-                logger.debug("{}->{}", this, l);
+                logger.debug("{}", this);
                 key.attach(l);
                 l.connected();
                 key.interestOps(SelectionKey.OP_READ | SelectionKey.OP_WRITE);
@@ -447,7 +456,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
                  * as original Client Listener was never attached to the key, this method will never be called. Please
                  * see DefaultEventLoop.disconnect().
                  */
-                logger.debug("missing OP_CONNECT {}", l);
+                logger.debug("missing OP_CONNECT {}", this);
                 throw new NotYetConnectedException();
               }
 
