@@ -37,9 +37,9 @@ import com.datatorrent.netlet.util.CircularBuffer;
 public class DefaultEventLoop implements Runnable, EventLoop
 {
   public final String id;
-  private final Selector selector;
-  private final CircularBuffer<Runnable> tasks;
-  private boolean alive;
+  protected final Selector selector;
+  protected final CircularBuffer<Runnable> tasks;
+  protected boolean alive;
   private int refCount;
   private Thread eventThread;
 
@@ -68,6 +68,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
         synchronized (DefaultEventLoop.this) {
           if (--refCount == 0) {
             alive = false;
+            selector.wakeup();
           }
         }
       }
@@ -84,22 +85,6 @@ public class DefaultEventLoop implements Runnable, EventLoop
   @Override
   public void run()
   {
-    try {
-      runEventLoop();
-    }
-    finally {
-      if (alive == true) {
-        alive = false;
-        logger.warn("Unexpected termination of {}", this);
-      }
-      eventThread = null;
-    }
-  }
-
-  @SuppressWarnings({"SleepWhileInLoop", "ConstantConditions"})
-  private void runEventLoop()
-  {
-    //logger.debug("Starting {}", this);
     synchronized (this) {
       if (eventThread == null) {
         refCount++;
@@ -111,6 +96,22 @@ public class DefaultEventLoop implements Runnable, EventLoop
     }
     alive = true;
 
+    try {
+      runEventLoop();
+    }
+    finally {
+      if (alive) {
+        alive = false;
+        logger.warn("Unexpected termination of {}", this);
+      }
+      eventThread = null;
+    }
+  }
+
+  @SuppressWarnings({"SleepWhileInLoop", "ConstantConditions"})
+  protected void runEventLoop()
+  {
+    //logger.debug("Starting {}", this);
     final Iterator<SelectionKey> EMPTY_ITERATOR = new Iterator<SelectionKey>()
     {
 
@@ -248,54 +249,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
             if (!(sk = iterator.next()).isValid()) {
               continue;
             }
-
-            switch (sk.readyOps()) {
-              case SelectionKey.OP_ACCEPT:
-                ServerSocketChannel ssc = (ServerSocketChannel)sk.channel();
-                SocketChannel sc = ssc.accept();
-                sc.configureBlocking(false);
-                final ServerListener sl = (ServerListener)sk.attachment();
-                final ClientListener l = sl.getClientConnection(sc, (ServerSocketChannel)sk.channel());
-                register(sc, SelectionKey.OP_READ | SelectionKey.OP_WRITE, l);
-                break;
-
-              case SelectionKey.OP_CONNECT:
-                if (((SocketChannel)sk.channel()).finishConnect()) {
-                  ((ClientListener)sk.attachment()).connected();
-                }
-                break;
-
-              case SelectionKey.OP_READ:
-                ((ClientListener)sk.attachment()).read();
-                break;
-
-              case SelectionKey.OP_WRITE:
-                ((ClientListener)sk.attachment()).write();
-                break;
-
-              case SelectionKey.OP_READ | SelectionKey.OP_WRITE:
-                ((ClientListener)sk.attachment()).read();
-                ((ClientListener)sk.attachment()).write();
-                break;
-
-              case SelectionKey.OP_WRITE | SelectionKey.OP_CONNECT:
-              case SelectionKey.OP_READ | SelectionKey.OP_CONNECT:
-              case SelectionKey.OP_READ | SelectionKey.OP_WRITE | SelectionKey.OP_CONNECT:
-                if (((SocketChannel)sk.channel()).finishConnect()) {
-                  ((ClientListener)sk.attachment()).connected();
-                  if (sk.isReadable()) {
-                    ((ClientListener)sk.attachment()).read();
-                  }
-                  if (sk.isWritable()) {
-                    ((ClientListener)sk.attachment()).write();
-                  }
-                }
-                break;
-
-              default:
-                logger.warn("!!!!!! not sure what interest this is {} !!!!!!", Integer.toBinaryString(sk.readyOps()));
-                break;
-            }
+            handleSelectedKey(sk);
           }
 
           selectedKeys.clear();
@@ -319,6 +273,58 @@ public class DefaultEventLoop implements Runnable, EventLoop
     //logger.debug("Terminated {}", this);
   }
 
+  protected final void handleSelectedKey(final SelectionKey sk) throws IOException
+  {
+    switch (sk.readyOps()) {
+      case SelectionKey.OP_ACCEPT:
+        ServerSocketChannel ssc = (ServerSocketChannel)sk.channel();
+        SocketChannel sc = ssc.accept();
+        sc.configureBlocking(false);
+        final ServerListener sl = (ServerListener)sk.attachment();
+        final ClientListener l = sl.getClientConnection(sc, (ServerSocketChannel)sk.channel());
+        register(sc, SelectionKey.OP_READ | SelectionKey.OP_WRITE, l);
+        break;
+
+      case SelectionKey.OP_CONNECT:
+        if (((SocketChannel)sk.channel()).finishConnect()) {
+          ((ClientListener)sk.attachment()).connected();
+        }
+        break;
+
+      case SelectionKey.OP_READ:
+        ((ClientListener)sk.attachment()).read();
+        break;
+
+      case SelectionKey.OP_WRITE:
+        ((ClientListener)sk.attachment()).write();
+        break;
+
+      case SelectionKey.OP_READ | SelectionKey.OP_WRITE:
+        ((ClientListener)sk.attachment()).read();
+        ((ClientListener)sk.attachment()).write();
+        break;
+
+      case SelectionKey.OP_WRITE | SelectionKey.OP_CONNECT:
+      case SelectionKey.OP_READ | SelectionKey.OP_CONNECT:
+      case SelectionKey.OP_READ | SelectionKey.OP_WRITE | SelectionKey.OP_CONNECT:
+        if (((SocketChannel)sk.channel()).finishConnect()) {
+          ((ClientListener)sk.attachment()).connected();
+          if (sk.isReadable()) {
+            ((ClientListener)sk.attachment()).read();
+          }
+          if (sk.isWritable()) {
+            ((ClientListener)sk.attachment()).write();
+          }
+        }
+        break;
+
+      default:
+        logger.warn("!!!!!! not sure what interest this is {} !!!!!!", Integer.toBinaryString(sk.readyOps()));
+        break;
+    }
+
+  }
+
   @Override
   public void submit(Runnable r)
   {
@@ -330,6 +336,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
     else {
       synchronized (tasks) {
         tasks.add(r);
+        selector.wakeup();
       }
     }
   }
