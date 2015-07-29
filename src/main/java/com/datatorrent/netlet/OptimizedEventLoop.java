@@ -97,7 +97,8 @@ public class OptimizedEventLoop extends DefaultEventLoop
     }
   }
 
-  public OptimizedEventLoop(String id) throws IOException
+  @SuppressWarnings("deprecation")
+  OptimizedEventLoop(String id) throws IOException
   {
     super(id);
     try {
