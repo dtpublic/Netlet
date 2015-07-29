@@ -36,6 +36,18 @@ import com.datatorrent.netlet.util.CircularBuffer;
  */
 public class DefaultEventLoop implements Runnable, EventLoop
 {
+  public static final String eventLoopPropertyName = "com.datatorrent.netlet.disableOptimizedEventLoop";
+  @SuppressWarnings("deprecation")
+  public static DefaultEventLoop createEventLoop(final String id) throws IOException
+  {
+    final String disableOptimizedEventLoop = System.getProperty(eventLoopPropertyName);
+    if (disableOptimizedEventLoop == null || disableOptimizedEventLoop.equalsIgnoreCase("true") || disableOptimizedEventLoop.equalsIgnoreCase("yes")) {
+      return new DefaultEventLoop(id);
+    } else {
+      return new OptimizedEventLoop(id);
+    }
+  }
+
   public final String id;
   protected final Selector selector;
   protected final CircularBuffer<Runnable> tasks;
@@ -43,6 +55,12 @@ public class DefaultEventLoop implements Runnable, EventLoop
   private int refCount;
   private Thread eventThread;
 
+  /**
+   * @deprecated use factory method {@link #createEventLoop(String)}
+   * @param id of the event loop
+   * @throws IOException
+   */
+  @Deprecated
   public DefaultEventLoop(String id) throws IOException
   {
     this.tasks = new CircularBuffer<Runnable>(1024, 5);
