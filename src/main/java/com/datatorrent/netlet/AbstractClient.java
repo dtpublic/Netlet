@@ -254,6 +254,7 @@ public abstract class AbstractClient implements ClientListener
         if (!write) {
           key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
           write = true;
+          key.selector().wakeup();
         }
       }
 
@@ -275,6 +276,7 @@ public abstract class AbstractClient implements ClientListener
         if (!write) {
           key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
           write = true;
+          key.selector().wakeup();
         }
 
         return true;
