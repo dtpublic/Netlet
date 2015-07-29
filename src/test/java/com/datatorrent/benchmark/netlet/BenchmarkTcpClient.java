@@ -39,7 +39,7 @@ import static java.lang.Thread.sleep;
  * <a href="http://stackoverflow.com/questions/23839437/what-are-the-netty-alternatives-for-high-performance-networking">http://stackoverflow.com/questions/23839437/what-are-the-netty-alternatives-for-high-performance-networking</a>,
  * <a href="http://www.coralblocks.com/NettyBench.zip">http://www.coralblocks.com/NettyBench.zip</a> and
  * <a href="https://groups.google.com/forum/#!topic/mechanical-sympathy/fhbyMnnxmaA">https://groups.google.com/forum/#!topic/mechanical-sympathy/fhbyMnnxmaA</a>
- * <p>run: <code>java -server -verbose:gc -Xms1g -Xmx1g -XX:NewSize=512m -XX:MaxNewSize=512m -DdetailedBenchmarker=true -DmeasureGC=false -DmsgSize=256 -Dmessages=1000000  -DoptimizedEventLoop=true com.datatorrent.benchmark.netlet.BenchmarkTcpClient localhost 8080</code></p>
+ * <p>run: <code>java -server -verbose:gc -Xms1g -Xmx1g -XX:NewSize=512m -XX:MaxNewSize=512m -DdetailedBenchmarker=true -DmeasureGC=false -DmsgSize=256 -Dmessages=1000000 com.datatorrent.benchmark.netlet.BenchmarkTcpClient localhost 8080</code></p>
  * <p>results=Iterations: 1000000 | Avg Time: 28.966 micros | Min Time: 11.0 micros | Max Time: 340.0 micros | 75% = [avg: 26.232 micros, max: 29.0 micros] | 90% = [avg: 27.38 micros, max: 37.0 micros] | 99% = [avg: 28.618 micros, max: 50.0 micros] | 99.9% = [avg: 28.907 micros, max: 80.0 micros] | 99.99% = [avg: 28.957 micros, max: 102.0 micros] | 99.999% = [avg: 28.964 micros, max: 133.0 micros]</p>
  */
 public class BenchmarkTcpClient extends AbstractClient
@@ -64,8 +64,7 @@ public class BenchmarkTcpClient extends AbstractClient
     messages = getInt("messages", 1000000);
     readBuffer = ByteBuffer.allocate(msgSize);
     sendBuffer = ByteBuffer.allocate(msgSize);
-    eventLoop = getBoolean("optimizedEventLoop", false)?
-            new OptimizedEventLoop("OptimizedEventLoop") :new DefaultEventLoop("DefaultEventLoop");
+    eventLoop = DefaultEventLoop.createEventLoop("ClientEventLoop");
     final Thread eventLoopThread = eventLoop.start();
     eventLoop.connect(new InetSocketAddress(host, port), this);
     eventLoopThread.join();

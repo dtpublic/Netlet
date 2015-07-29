@@ -42,7 +42,7 @@ import static java.lang.Thread.sleep;
  * <a href="http://stackoverflow.com/questions/23839437/what-are-the-netty-alternatives-for-high-performance-networking">http://stackoverflow.com/questions/23839437/what-are-the-netty-alternatives-for-high-performance-networking</a>,
  * <a href="http://www.coralblocks.com/NettyBench.zip">http://www.coralblocks.com/NettyBench.zip</a> and
  * <a href="https://groups.google.com/forum/#!topic/mechanical-sympathy/fhbyMnnxmaA">https://groups.google.com/forum/#!topic/mechanical-sympathy/fhbyMnnxmaA</a>
- * <p>run: <code>java -server -XX:+PrintGCDetails -Xms2g -Xmx2g -XX:NewSize=756m -XX:MaxNewSize=756m -DdetailedBenchmarker=true -DmeasureGC=false -DmsgSize=256 -DoptimizedEventLoop=true com.datatorrent.benchmark.netlet.EchoTcpServer</code></p>
+ * <p>run: <code>java -server -XX:+PrintGCDetails -Xms2g -Xmx2g -XX:NewSize=756m -XX:MaxNewSize=756m -DdetailedBenchmarker=true -DmeasureGC=false -DmsgSize=256 com.datatorrent.benchmark.netlet.EchoTcpServer</code></p>
  * <p>results=Iterations: 1000000 | Avg Time: 14.549 micros | Min Time: 0.0 nanos | Max Time: 120.0 micros | 75% = [avg: 13.236 micros, max: 15.0 micros] | 90% = [avg: 13.716 micros, max: 18.0 micros] | 99% = [avg: 14.375 micros, max: 26.0 micros] | 99.9% = [avg: 14.502 micros, max: 53.0 micros] | 99.99% = [avg: 14.542 micros, max: 72.0 micros] | 99.999% = [avg: 14.548 micros, max: 89.0 micros]</p>
  */
 public class EchoTcpServer extends AbstractServer
@@ -52,8 +52,7 @@ public class EchoTcpServer extends AbstractServer
   private EchoTcpServer(final String host, final int port) throws IOException, InterruptedException
   {
     super();
-    final DefaultEventLoop defaultEventLoop = getBoolean("optimizedEventLoop", false)?
-            new OptimizedEventLoop("OptimizedEventLoop") : new DefaultEventLoop("DefaultEventLoop");
+    final DefaultEventLoop defaultEventLoop = DefaultEventLoop.createEventLoop("ServerEventLoop");
     final Thread eventLoopThread = defaultEventLoop.start();
     defaultEventLoop.start(host, port, this);
     eventLoopThread.join();
