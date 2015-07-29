@@ -91,14 +91,12 @@ public class AbstractClientTest
   {
   }
 
-  @Test
   @SuppressWarnings("SleepWhileInLoop")
-  public void verifySendReceive() throws IOException, InterruptedException
+  private void verifySendReceive(DefaultEventLoop el) throws IOException, InterruptedException
   {
     ServerImpl si = new ServerImpl();
     ClientImpl ci = new ClientImpl();
 
-    DefaultEventLoop el = new DefaultEventLoop("test");
     new Thread(el).start();
 
     el.start("localhost", 5033, si);
@@ -129,7 +127,19 @@ public class AbstractClientTest
     el.disconnect(ci);
     el.stop(si);
     el.stop();
-    assert (ci.read);
+    Assert.assertTrue(ci.read);
+  }
+
+  @Test
+  public void testWithDefault() throws IOException, InterruptedException
+  {
+    verifySendReceive(new DefaultEventLoop("test"));
+  }
+
+  @Test
+  public void testWithOptimized() throws IOException, InterruptedException
+  {
+    verifySendReceive(new OptimizedEventLoop("test"));
   }
 
   private static final Logger logger = LoggerFactory.getLogger(AbstractClientTest.class);
