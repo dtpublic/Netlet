@@ -59,7 +59,8 @@ public class OptimizedEventLoop extends DefaultEventLoop
       if (key == null) {
         return false;
       }
-      if (pos >= keys.length) {
+      // An extra slot is needed to store the null delimiter when keys are retrieved
+      if (pos >= (keys.length - 1)) {
         SelectionKey[] keys = new SelectionKey[this.keys.length << 1];
         System.arraycopy(this.keys, 0, keys, 0, this.keys.length);
         this.keys = keys;
