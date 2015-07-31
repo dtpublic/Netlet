@@ -37,28 +37,22 @@ public class OptimizedEventLoop extends DefaultEventLoop
 {
   private final static class SelectedSelectionKeySet extends AbstractSet<SelectionKey>
   {
-    private SelectionKey[] keys;
-    private int pos;
+    public SelectionKey[] keys;
+    public int pos;
 
     private SelectedSelectionKeySet(int size)
     {
       pos = 0;
       keys = new SelectionKey[size];
     }
-
-    private SelectionKey[] getKeys()
-    {
-      keys[pos] = null;
-      pos = 0;
-      return keys;
-    }
-
+    
     @Override
     public boolean add(SelectionKey key)
     {
       if (key == null) {
         return false;
       }
+      // An extra slot is needed to store the null delimiter when keys are retrieved
       if (pos >= keys.length) {
         SelectionKey[] keys = new SelectionKey[this.keys.length << 1];
         System.arraycopy(this.keys, 0, keys, 0, this.keys.length);
@@ -157,14 +151,10 @@ public class OptimizedEventLoop extends DefaultEventLoop
             continue;
           }
 
-          SelectionKey[] selectedKeys = keys.getKeys();
-          for (int i = 0; alive; i++) {
-            sk = selectedKeys[i];
-            if (sk == null) {
-              break;
-            } else {
-              selectedKeys[i] = null;
-            }
+          SelectionKey[] selectedKeys = keys.keys;
+          while ((keys.pos > 0) && alive) {
+            --keys.pos;
+            sk = selectedKeys[keys.pos];
             if (!sk.isValid()) {
               continue;
             }
