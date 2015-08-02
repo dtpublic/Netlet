@@ -139,6 +139,7 @@ public abstract class AbstractClient implements ClientListener
   public void resumeRead()
   {
     key.interestOps(key.interestOps() | SelectionKey.OP_READ);
+    key.selector().wakeup();
   }
 
   @Override

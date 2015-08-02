@@ -46,11 +46,25 @@ public class OptimizedEventLoop extends DefaultEventLoop
       keys = new SelectionKey[size];
     }
 
-    private SelectionKey[] getKeys()
+    public void forEach(final DefaultEventLoop defaultEventLoop)
     {
+      while (defaultEventLoop.alive && pos > 0) {
+        final SelectionKey sk = keys[--pos];
       keys[pos] = null;
-      pos = 0;
-      return keys;
+        if (!sk.isValid()) {
+          continue;
+        }
+        try {
+          defaultEventLoop.handleSelectedKey(sk);
+        } catch (Exception ex) {
+          Listener l = (Listener)sk.attachment();
+          if (l != null) {
+            l.handleException(ex, defaultEventLoop);
+          } else {
+            logger.warn("Exception on unattached SelectionKey {} ", sk, ex);
+          }
+        }
+      }
     }
 
     @Override
@@ -59,12 +73,12 @@ public class OptimizedEventLoop extends DefaultEventLoop
       if (key == null) {
         return false;
       }
-      if (pos >= keys.length) {
+      keys[pos++] = key;
+      if (pos == keys.length) {
         SelectionKey[] keys = new SelectionKey[this.keys.length << 1];
-        System.arraycopy(this.keys, 0, keys, 0, this.keys.length);
+        System.arraycopy(this.keys, 0, keys, 0, pos);
         this.keys = keys;
       }
-      keys[pos++] = key;
       return true;
     }
 
@@ -83,8 +97,9 @@ public class OptimizedEventLoop extends DefaultEventLoop
       if (o == null) {
         return false;
       }
-      for (int i = 0; i < pos; i++) {
-        if (o.equals(keys[i])) {
+      int i = pos;
+      while (i > 0) {
+        if (o.equals(keys[--i])) {
           return true;
         }
       }
@@ -144,49 +159,33 @@ public class OptimizedEventLoop extends DefaultEventLoop
 
   private void runEventLoop(SelectedSelectionKeySet keys)
   {
-    do {
-      SelectionKey sk = null;
-      try {
-        do {
+    while (alive) {
           int size = tasks.size();
-          while (alive && size > 0 && selector.selectNow() == 0) {
-            tasks.pollUnsafe().run();
+      try {
+        if (size > 0) {
+          while (alive && size > 0) {
+            Runnable task = tasks.pollUnsafe();
+            try {
+              task.run();
+            }
+            catch (Exception e) {
+              logger.error("Unexpected exception in task {}", task);
+              throw new RuntimeException(e);
+            }
             size--;
           }
-          if (alive && size == 0 && selector.select() == 0) {
+          if (selector.selectNow() == 0) {
             continue;
           }
-
-          SelectionKey[] selectedKeys = keys.getKeys();
-          for (int i = 0; alive; i++) {
-            sk = selectedKeys[i];
-            if (sk == null) {
-              break;
-            } else {
-              selectedKeys[i] = null;
-            }
-            if (!sk.isValid()) {
+        } else if (selector.select() == 0) {
               continue;
             }
-            handleSelectedKey(sk);
+      } catch (IOException e) {
+        logger.error("Unexpected exception in selector {}", selector, e);
+        throw new RuntimeException(e);
           }
+      keys.forEach(this);
         }
-        while (alive);
-      }
-      catch (Exception ex) {
-        if (sk == null) {
-          logger.warn("Unexpected exception not related to SelectionKey", ex);
-        }
-        else {
-          logger.warn("Exception on unregistered SelectionKey {}", sk, ex);
-          Listener l = (Listener)sk.attachment();
-          if (l != null) {
-            l.handleException(ex, this);
-          }
-        }
-      }
-    }
-    while (alive);
     //logger.debug("Terminated {}", this);
   }
 
