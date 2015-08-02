@@ -92,15 +92,15 @@ public class AbstractClientTest
   }
 
   @SuppressWarnings("SleepWhileInLoop")
-  private void verifySendReceive(DefaultEventLoop el) throws IOException, InterruptedException
+  private void verifySendReceive(final DefaultEventLoop el, final int port) throws IOException, InterruptedException
   {
     ServerImpl si = new ServerImpl();
     ClientImpl ci = new ClientImpl();
 
     new Thread(el).start();
 
-    el.start("localhost", 5033, si);
-    el.connect(new InetSocketAddress("localhost", 5033), ci);
+    el.start("localhost", port, si);
+    el.connect(new InetSocketAddress("localhost", port), ci);
 
     ByteBuffer outboundBuffer = ByteBuffer.allocate(ClientImpl.BUFFER_CAPACITY);
     LongBuffer lb = outboundBuffer.asLongBuffer();
@@ -130,16 +130,33 @@ public class AbstractClientTest
     Assert.assertTrue(ci.read);
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void testWithDefault() throws IOException, InterruptedException
   {
-    verifySendReceive(new DefaultEventLoop("test"));
+    verifySendReceive(new DefaultEventLoop("test"), 5033);
   }
 
   @Test
   public void testWithOptimized() throws IOException, InterruptedException
   {
-    verifySendReceive(new OptimizedEventLoop("test"));
+    verifySendReceive(new OptimizedEventLoop("test"), 5034);
+  }
+
+  @Test
+  public void testCreateEventLoop() throws IOException
+  {
+    Assert.assertEquals(OptimizedEventLoop.class, DefaultEventLoop.createEventLoop("test").getClass());
+    System.setProperty(DefaultEventLoop.eventLoopPropertyName, "");
+    Assert.assertEquals(DefaultEventLoop.class, DefaultEventLoop.createEventLoop("test").getClass());
+    System.setProperty(DefaultEventLoop.eventLoopPropertyName, "false");
+    Assert.assertEquals(OptimizedEventLoop.class, DefaultEventLoop.createEventLoop("test").getClass());
+    System.setProperty(DefaultEventLoop.eventLoopPropertyName, "true");
+    Assert.assertEquals(DefaultEventLoop.class, DefaultEventLoop.createEventLoop("test").getClass());
+    System.setProperty(DefaultEventLoop.eventLoopPropertyName, "no");
+    Assert.assertEquals(OptimizedEventLoop.class, DefaultEventLoop.createEventLoop("test").getClass());
+    System.setProperty(DefaultEventLoop.eventLoopPropertyName, "yes");
+    Assert.assertEquals(DefaultEventLoop.class, DefaultEventLoop.createEventLoop("test").getClass());
   }
 
   private static final Logger logger = LoggerFactory.getLogger(AbstractClientTest.class);
