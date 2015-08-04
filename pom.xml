@@ -29,6 +29,15 @@
         <role>developer</role>
       </roles>
     </developer>
+    <developer>
+      <id>vrozov</id>
+      <name>Vlad Rozov</name>
+      <email>v.rozov@datatorrent.com</email>
+      <organization>DataTorrent, Inc.</organization>
+      <roles>
+        <role>developer</role>
+      </roles>
+    </developer>
   </developers>
 
   <scm>
