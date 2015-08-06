@@ -315,32 +315,58 @@ public class CircularBuffer<T> implements UnsafeBlockingQueue<T>
     return head == tail;
   }
 
+  private class FrozenIterator implements Iterator<T>, Iterable<T>, Cloneable
+  {
+    private final long frozenHead;
+    private final long frozenTail;
+    private long tail;
+
+    FrozenIterator()
+    {
+      this(CircularBuffer.this.head, CircularBuffer.this.tail);
+    }
+
+    FrozenIterator(long frozenHead, long frozenTail)
+    {
+      this.frozenHead = frozenHead;
+      this.frozenTail = frozenTail;
+      this.tail = frozenTail;
+    }
+
+    @Override
+    public boolean hasNext()
+    {
+      return tail < frozenHead;
+    }
+
+    @Override
+    public T next()
+    {
+      return buffer[(int)(tail++ & buffermask)];
+    }
+
+    @Override
+    public void remove()
+    {
+      buffer[(int)((tail - 1) & buffermask)] = null;
+    }
+
+    @Override
+    public Iterator<T> iterator()
+    {
+      return new FrozenIterator(frozenHead, frozenTail);
+    }
+
+  }
+
   public Iterator<T> getFrozenIterator()
   {
-    return new Iterator<T>()
-    {
-      private final long head = CircularBuffer.this.head;
-      private long tail = CircularBuffer.this.tail;
+    return new FrozenIterator();
+  }
 
-      @Override
-      public boolean hasNext()
-      {
-        return tail < head;
-      }
-
-      @Override
-      public T next()
-      {
-        return buffer[(int)(tail++ & buffermask)];
-      }
-
-      @Override
-      public void remove()
-      {
-        buffer[(int)((tail - 1) & buffermask)] = null;
-      }
-
-    };
+  public Iterable<T> getFrozenIterable()
+  {
+    return new FrozenIterator();
   }
 
   @Override
