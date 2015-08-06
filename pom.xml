@@ -48,6 +48,10 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <benchmark.count>1000000</benchmark.count>
+    <benchmark.size>256</benchmark.size>
+    <benchmark.host>localhost</benchmark.host>
+    <benchmark.port>8080</benchmark.port>
   </properties>
 
   <build>
@@ -165,6 +169,180 @@
         </plugins>
       </build>
     </profile>
+    <profile>
+      <id>Benchmark Netlet Server</id>
+      <activation>
+        <property>
+          <name>benchmark</name>
+          <value>netlet.server</value>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <version>1.4.0</version>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>exec</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <executable>java</executable>
+              <arguments>
+                <argument>-server</argument>
+                <argument>-XX:+PrintGCDetails</argument>
+                <argument>-Xms2g</argument>
+                <argument>-Xmx2g</argument>
+                <argument>-XX:NewSize=768m</argument>
+                <argument>-XX:MaxNewSize=768m</argument>
+                <argument>-cp</argument>
+                <classpath />
+                <argument>-Dcom.datatorrent.netlet.benchmark.message.count=${benchmark.count}</argument>
+                <argument>-Dcom.datatorrent.netlet.benchmark.message.size=${benchmark.size}</argument>
+                <argument>com.datatorrent.netlet.benchmark.netlet.EchoTcpServer</argument>
+                <argument>${benchmark.port}</argument>
+              </arguments>
+              <classpathScope>test</classpathScope>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>Benchmark Netty Server</id>
+      <activation>
+        <property>
+          <name>benchmark</name>
+          <value>netty.server</value>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <version>1.4.0</version>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>exec</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <executable>java</executable>
+              <arguments>
+                <argument>-server</argument>
+                <argument>-XX:+PrintGCDetails</argument>
+                <argument>-Xms2g</argument>
+                <argument>-Xmx2g</argument>
+                <argument>-XX:NewSize=768m</argument>
+                <argument>-XX:MaxNewSize=768m</argument>
+                <argument>-cp</argument>
+                <classpath />
+                <argument>-Dcom.datatorrent.netlet.benchmark.message.count=${benchmark.count}</argument>
+                <argument>-Dcom.datatorrent.netlet.benchmark.message.size=${benchmark.size}</argument>
+                <argument>com.datatorrent.netlet.benchmark.netty.EchoTcpServer</argument>
+                <argument>${benchmark.port}</argument>
+              </arguments>
+              <classpathScope>test</classpathScope>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>Benchmark Netlet Client</id>
+      <activation>
+        <property>
+          <name>benchmark</name>
+          <value>netlet.client</value>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <version>1.4.0</version>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>exec</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <executable>java</executable>
+              <arguments>
+                <argument>-server</argument>
+                <argument>-verbose:gc</argument>
+                <argument>-Xms1g</argument>
+                <argument>-Xmx1g</argument>
+                <argument>-XX:NewSize=512m</argument>
+                <argument>-XX:MaxNewSize=512m</argument>
+                <argument>-cp</argument>
+                <classpath />
+                <argument>-Dcom.datatorrent.netlet.benchmark.message.count=${benchmark.count}</argument>
+                <argument>-Dcom.datatorrent.netlet.benchmark.message.size=${benchmark.size}</argument>
+                <argument>com.datatorrent.netlet.benchmark.netlet.BenchmarkTcpClient</argument>
+                <argument>${benchmark.host}</argument>
+                <argument>${benchmark.port}</argument>
+              </arguments>
+              <classpathScope>test</classpathScope>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>Benchmark Netty Client</id>
+      <activation>
+        <property>
+          <name>benchmark</name>
+          <value>netty.client</value>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <version>1.4.0</version>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>exec</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <executable>java</executable>
+              <arguments>
+                <argument>-server</argument>
+                <argument>-verbose:gc</argument>
+                <argument>-Xms1g</argument>
+                <argument>-Xmx1g</argument>
+                <argument>-XX:NewSize=512m</argument>
+                <argument>-XX:MaxNewSize=512m</argument>
+                <argument>-cp</argument>
+                <classpath />
+                <argument>-Dcom.datatorrent.netlet.benchmark.message.count=${benchmark.count}</argument>
+                <argument>-Dcom.datatorrent.netlet.benchmark.message.size=${benchmark.size}</argument>
+                <argument>com.datatorrent.netlet.benchmark.netty.BenchmarkTcpClient</argument>
+                <argument>${benchmark.host}</argument>
+                <argument>${benchmark.port}</argument>
+              </arguments>
+              <classpathScope>test</classpathScope>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
   </profiles>
 
   <dependencies>
@@ -184,6 +362,24 @@
       <version>4.12</version>
       <scope>test</scope>
       <type>jar</type>
+    </dependency>
+    <dependency>
+      <groupId>io.netty</groupId>
+      <artifactId>netty-all</artifactId>
+      <version>5.0.0.Alpha2</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>commons-configuration</groupId>
+      <artifactId>commons-configuration</artifactId>
+      <version>1.10</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-math3</artifactId>
+      <version>3.5</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 
