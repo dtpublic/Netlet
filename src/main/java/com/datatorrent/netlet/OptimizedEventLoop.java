@@ -113,7 +113,7 @@ public class OptimizedEventLoop extends DefaultEventLoop
   }
 
   @SuppressWarnings("deprecation")
-  OptimizedEventLoop(String id) throws IOException
+  public OptimizedEventLoop(String id) throws IOException
   {
     super(id);
     try {
