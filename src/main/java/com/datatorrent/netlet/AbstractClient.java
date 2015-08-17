@@ -131,6 +131,35 @@ public abstract class AbstractClient implements ClientListener
     }
   }
 
+  public boolean isReadSuspended()
+  {
+    return (key.interestOps() & SelectionKey.OP_READ) == 0;
+  }
+
+  public boolean resumeReadIfSuspended()
+  {
+    final int interestOps = key.interestOps();
+    if ((interestOps & SelectionKey.OP_READ) == 0) {
+      key.interestOps(interestOps | SelectionKey.OP_READ);
+      key.selector().wakeup();
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  public boolean suspendReadIfResumed()
+  {
+    final int interestOps = key.interestOps();
+    if ((interestOps & SelectionKey.OP_READ) == SelectionKey.OP_READ) {
+      logger.info("Suspended read for {}", key.attachment());
+      key.interestOps(interestOps & ~SelectionKey.OP_READ);
+      return true;
+    } else {
+      return false;
+    }
+  }
+
   public void suspendRead()
   {
     key.interestOps(key.interestOps() & ~SelectionKey.OP_READ);
