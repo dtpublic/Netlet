@@ -152,6 +152,7 @@ public abstract class AbstractClient implements ClientListener
   {
     final int interestOps = key.interestOps();
     if ((interestOps & SelectionKey.OP_READ) == SelectionKey.OP_READ) {
+      logger.info("Suspended read for {}", key.attachment());
       key.interestOps(interestOps & ~SelectionKey.OP_READ);
       return true;
     } else {
