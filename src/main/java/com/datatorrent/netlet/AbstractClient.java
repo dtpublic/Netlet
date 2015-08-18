@@ -131,11 +131,57 @@ public abstract class AbstractClient implements ClientListener
     }
   }
 
+  /**
+   * @since 1.2.0
+   */
+  public boolean isReadSuspended()
+  {
+    return (key.interestOps() & SelectionKey.OP_READ) == 0;
+  }
+
+  /**
+   * @since 1.2.0
+   */
+  public boolean suspendReadIfResumed()
+  {
+    final int interestOps = key.interestOps();
+    if ((interestOps & SelectionKey.OP_READ) == SelectionKey.OP_READ) {
+      logger.debug("Suspending read on key {} with attachment {}", key, key.attachment());
+      key.interestOps(interestOps & ~SelectionKey.OP_READ);
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  /**
+   * @since 1.2.0
+   */
+  public boolean resumeReadIfSuspended()
+  {
+    final int interestOps = key.interestOps();
+    if ((interestOps & SelectionKey.OP_READ) == 0) {
+      logger.debug("Resuming read on key {} with attachment {}", key, key.attachment());
+      key.interestOps(interestOps | SelectionKey.OP_READ);
+      key.selector().wakeup();
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  /**
+   * @deprecated As of release 1.2.0, replaced by {@link #suspendReadIfResumed()}
+   */
+  @Deprecated
   public void suspendRead()
   {
     key.interestOps(key.interestOps() & ~SelectionKey.OP_READ);
   }
 
+  /**
+   * @deprecated As of release 1.2.0, replaced by {@link #resumeReadIfSuspended()}
+   */
   public void resumeRead()
   {
     key.interestOps(key.interestOps() | SelectionKey.OP_READ);
