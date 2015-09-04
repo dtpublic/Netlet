@@ -182,6 +182,7 @@ public abstract class AbstractClient implements ClientListener
   /**
    * @deprecated As of release 1.2.0, replaced by {@link #resumeReadIfSuspended()}
    */
+  @Deprecated
   public void resumeRead()
   {
     key.interestOps(key.interestOps() | SelectionKey.OP_READ);
