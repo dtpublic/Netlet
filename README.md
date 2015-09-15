@@ -100,7 +100,7 @@ You can download the latest version from the [release page](https://github.com/D
 
 ##Development##
 
-* ![Build Status](https://travis-ci.org/243826/netlet.svg)
+* ![Build Status](https://travis-ci.org/DataTorrent/Netlet.svg?branch=master)
 
 ###Reports###
 
