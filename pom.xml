@@ -120,7 +120,7 @@
             <dependency>
               <groupId>com.datatorrent</groupId>
               <artifactId>netlet</artifactId>
-              <version>1.1.0</version>
+              <version>1.2.0</version>
             </dependency>
           </oldVersion>
           <newVersion>
@@ -143,7 +143,7 @@
               <exclude>package.Class#fieldToExclude</exclude>
             </excludes -->
             <accessModifier>protected</accessModifier>
-            <breakBuildOnModifications>false</breakBuildOnModifications>
+            <breakBuildOnModifications>true</breakBuildOnModifications>
             <breakBuildOnBinaryIncompatibleModifications>true</breakBuildOnBinaryIncompatibleModifications>
             <onlyBinaryIncompatible>false</onlyBinaryIncompatible>
             <includeSynthetic>false</includeSynthetic>
