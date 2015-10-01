@@ -15,6 +15,9 @@
  */
 package com.datatorrent.netlet.util;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -138,6 +141,20 @@ public class CircularBufferTest
     assert (instance.size() == 9);
     assert (instance.remove() == 2);
     Thread.currentThread().setName(oldName);
+  }
+
+  @Test
+  public void testDrainToMax() {
+    CircularBuffer<Integer> instance = new CircularBuffer<Integer>(10);
+    for (int i = 0; i < 10; ++i) {
+      instance.offer(i);
+    }
+    List<Integer> list = new ArrayList<Integer>(10);
+    instance.drainTo(list, 5);
+    assert (list.size() == 5);
+    for (int i = 0; i < list.size(); ++i) {
+      assert(list.get(i) == i);
+    }
   }
 
   @Test
