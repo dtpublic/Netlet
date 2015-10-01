@@ -85,7 +85,7 @@ public class EchoTcpServer extends AbstractServer
       public void handleException(Exception e, ProtocolHandler handler)
       {
         logger.error("", e);
-        ((ClientProtocolHandler)handler).disconnectFromDriver();
+        ((ClientProtocolHandler)handler).disconnectConnection();
       }
 
       @Override

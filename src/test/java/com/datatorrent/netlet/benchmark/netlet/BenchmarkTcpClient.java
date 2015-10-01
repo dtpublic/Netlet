@@ -108,7 +108,7 @@ public class BenchmarkTcpClient extends AbstractClient
   {
     if (readByteBuffer.position() != readByteBuffer.capacity()) {
       logger.error("Read buffer position {} != capacity {}", readByteBuffer.position(), readByteBuffer.capacity());
-      handler.disconnectFromDriver();
+      handler.disconnectConnection();
       return;
     }
 
@@ -116,11 +116,11 @@ public class BenchmarkTcpClient extends AbstractClient
     long timestamp = readByteBuffer.getLong();
     if (timestamp < -2) {
       logger.error("Received bad timestamp {}", timestamp);
-      handler.disconnectFromDriver();
+      handler.disconnectConnection();
       return;
     } else if (timestamp != this.timestamp) {
       logger.error("Received bad timestamp {}. Sent timestamp {}", timestamp, this.timestamp);
-      handler.disconnectFromDriver();
+      handler.disconnectConnection();
       return;
     } else if (timestamp > 0) {
       benchmarkResults.addResult(System.nanoTime() - timestamp);
@@ -145,7 +145,7 @@ public class BenchmarkTcpClient extends AbstractClient
       write();
     } catch (Exception e) {
       logger.error("", e);
-      handler.disconnectFromDriver();
+      handler.disconnectConnection();
       return;
     }
     sendByteBuffer.clear();
@@ -167,7 +167,7 @@ public class BenchmarkTcpClient extends AbstractClient
       if (++count == BenchmarkConfiguration.messageCount) {
         send(-2);
         logger.info("Finished sending messages! Sent {} messages.", count);
-        handler.disconnectFromDriver();
+        handler.disconnectConnection();
       } else {
         send(System.nanoTime());
       }

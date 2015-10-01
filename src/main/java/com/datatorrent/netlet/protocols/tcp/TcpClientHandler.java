@@ -84,6 +84,7 @@ public class TcpClientHandler extends ProtocolListenerAdapter<ClientListener> im
              * occasionally channel key will not be selected after connection is established and finishConnect()
              * will return true.
              */
+        final ClientListener listener = this.listener;
         ClientListener clientListener = new ClientListener()
         {
           private SelectionKey key;
@@ -108,7 +109,7 @@ public class TcpClientHandler extends ProtocolListenerAdapter<ClientListener> im
           public void connected()
           {
             logger.debug("{}", this);
-            key.attach(this);
+            //key.attach(this);
             listener.connected();
             key.interestOps(SelectionKey.OP_READ | SelectionKey.OP_WRITE);
           }
@@ -171,7 +172,7 @@ public class TcpClientHandler extends ProtocolListenerAdapter<ClientListener> im
   }
 
   @Override
-  public void disconnectFromDriver()
+  public void disconnectConnection()
   {
     protocolDriver.disconnect(this);
   }

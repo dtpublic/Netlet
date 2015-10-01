@@ -40,7 +40,7 @@ public interface ProtocolHandler
   interface ClientProtocolHandler extends ProtocolHandler {
     void connect(InetSocketAddress address);
     // The following methods are listener view and will be separated into a different interface
-    void disconnectFromDriver();
+    void disconnectConnection();
   }
 
   ProtocolHandler NOOP_HANDLER = new ProtocolHandler()
@@ -91,7 +91,7 @@ public interface ProtocolHandler
     }
 
     @Override
-    public void disconnectFromDriver()
+    public void disconnectConnection()
     {
 
     }

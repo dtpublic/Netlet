@@ -280,7 +280,7 @@ public abstract class AbstractLengthPrependerClient extends AbstractClient
       if (cce instanceof IOException) {
         logger.debug("Disconnecting {} because of an exception.", this, cce);
         if (isConnected()) {
-          ((ClientProtocolHandler)handler).disconnectFromDriver();
+          ((ClientProtocolHandler)handler).disconnectConnection();
         }
       }
       else {
