@@ -19,24 +19,28 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.SelectionKey;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * <p>ProtocolHandler interface.</p>
  *
  */
-public interface ProtocolHandler extends Listener
+public interface ProtocolHandler
 {
   void init(ProtocolDriver protocolDriver);
   void handleSelectedKey(final SelectionKey sk) throws IOException;
+  ProtocolDriver getProtocolDriver();
+  void registered(SelectionKey key);
+  void unregistered(SelectionKey key);
+  void handleException(Exception e);
 
   interface ServerProtocolHandler extends ProtocolHandler {
     void start(final String host, final int port);
+    void stopServer();
   }
 
   interface ClientProtocolHandler extends ProtocolHandler {
     void connect(InetSocketAddress address);
+    // The following methods are listener view and will be separated into a different interface
+    void disconnectFromDriver();
   }
 
   ProtocolHandler NOOP_HANDLER = new ProtocolHandler()
@@ -54,9 +58,9 @@ public interface ProtocolHandler extends Listener
     }
 
     @Override
-    public void handleException(Exception exception, EventLoop eventloop)
+    public ProtocolDriver getProtocolDriver()
     {
-
+      return null;
     }
 
     @Override
@@ -70,12 +74,24 @@ public interface ProtocolHandler extends Listener
     {
 
     }
+
+    @Override
+    public void handleException(Exception e)
+    {
+
+    }
   };
 
   ClientProtocolHandler NOOP_CLIENT_HANDLER = new ClientProtocolHandler() {
 
     @Override
-    public void handleException(Exception exception, EventLoop eventloop)
+    public void handleException(Exception exception)
+    {
+
+    }
+
+    @Override
+    public void disconnectFromDriver()
     {
 
     }
@@ -102,6 +118,12 @@ public interface ProtocolHandler extends Listener
     public void handleSelectedKey(SelectionKey sk) throws IOException
     {
 
+    }
+
+    @Override
+    public ProtocolDriver getProtocolDriver()
+    {
+      return null;
     }
 
     @Override
@@ -121,8 +143,11 @@ public interface ProtocolHandler extends Listener
    * disconnected. This listener ensures that only the writes requested before disconnection
    * request are processed and others are rejected.
    */
+  /*
+  TO BE DONE
   static class DisconnectingClientHandler implements ClientProtocolHandler
   {
+
     private final ClientProtocolHandler previous;
     private final SelectionKey key;
 
@@ -138,9 +163,9 @@ public interface ProtocolHandler extends Listener
       disconnect();
     }
 
-    /**
+    /--**
      * Disconnect if there is no write interest on this socket.
-     */
+     *--/
     private void disconnect()
     {
       if (!key.isValid() || (key.interestOps() & SelectionKey.OP_WRITE) == 0) {
@@ -202,6 +227,7 @@ public interface ProtocolHandler extends Listener
 
     private static final Logger logger = LoggerFactory.getLogger(DisconnectingClientHandler.class);
   }
+  */
 
 
 }

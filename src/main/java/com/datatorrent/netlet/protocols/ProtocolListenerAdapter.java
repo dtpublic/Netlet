@@ -2,7 +2,6 @@ package com.datatorrent.netlet.protocols;
 
 import java.nio.channels.SelectionKey;
 
-import com.datatorrent.netlet.EventLoop;
 import com.datatorrent.netlet.Listener;
 import com.datatorrent.netlet.ProtocolDriver;
 import com.datatorrent.netlet.ProtocolHandler;
@@ -15,18 +14,20 @@ public abstract class ProtocolListenerAdapter<L extends Listener> implements Pro
   protected L listener;
   protected ProtocolDriver protocolDriver;
 
-  public ProtocolListenerAdapter(L listener) {
+  public ProtocolListenerAdapter(L listener)
+  {
     this.listener = listener;
   }
 
-  public void init(ProtocolDriver protocolDriver) {
+  public void init(ProtocolDriver protocolDriver)
+  {
     this.protocolDriver = protocolDriver;
   }
 
   @Override
-  public void handleException(Exception exception, EventLoop eventloop)
+  public void handleException(Exception exception)
   {
-    listener.handleException(exception, eventloop);
+    listener.handleException(exception, this);
   }
 
   @Override
@@ -44,5 +45,10 @@ public abstract class ProtocolListenerAdapter<L extends Listener> implements Pro
   public L getListener()
   {
     return listener;
+  }
+
+  public ProtocolDriver getProtocolDriver()
+  {
+    return protocolDriver;
   }
 }

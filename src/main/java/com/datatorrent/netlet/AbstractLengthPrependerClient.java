@@ -22,6 +22,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datatorrent.netlet.ProtocolHandler.ClientProtocolHandler;
 import com.datatorrent.netlet.util.DTThrowable;
 import com.datatorrent.netlet.util.VarInt;
 
@@ -273,13 +274,13 @@ public abstract class AbstractLengthPrependerClient extends AbstractClient
   }
 
   @Override
-  public void handleException(Exception cce, EventLoop el)
+  public void handleException(Exception cce, ProtocolHandler handler)
   {
     if (key.attachment() == this) {
       if (cce instanceof IOException) {
         logger.debug("Disconnecting {} because of an exception.", this, cce);
         if (isConnected()) {
-          el.disconnect(this);
+          ((ClientProtocolHandler)handler).disconnectFromDriver();
         }
       }
       else {

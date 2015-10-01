@@ -31,9 +31,9 @@ public interface Listener
    * is interested in.
    *
    * @param exception The exception that was caught by the networking library.
-   * @param eventloop The eventloop with which the connection is registered.
+   * @param handler The protocol handler with which the connection is registered.
    */
-  public void handleException(Exception exception, EventLoop eventloop);
+  public void handleException(Exception exception, ProtocolHandler handler);
 
   /**
    * Notify the listener as soon as the underlying connection is registered with

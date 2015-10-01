@@ -45,7 +45,7 @@ public abstract class AbstractServer implements TcpServerListener
   }
 
   @Override
-  public void handleException(Exception cce, EventLoop el)
+  public void handleException(Exception cce, ProtocolHandler handler)
   {
     logger.debug("", cce);
   }

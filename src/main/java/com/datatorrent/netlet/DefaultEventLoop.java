@@ -29,7 +29,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.datatorrent.netlet.ProtocolHandler.ClientProtocolHandler;
-import com.datatorrent.netlet.ProtocolHandler.DisconnectingClientHandler;
 import com.datatorrent.netlet.ProtocolHandler.ServerProtocolHandler;
 import com.datatorrent.netlet.util.CircularBuffer;
 
@@ -288,7 +287,7 @@ public class DefaultEventLoop implements Runnable, EventLoop, ProtocolDriver
           logger.warn("Exception on unregistered SelectionKey {}", sk, ex);
           ProtocolHandler handler = (ProtocolHandler)sk.attachment();
           if (handler != null) {
-            handler.handleException(ex, this);
+            handler.handleException(ex);
           }
         }
       }
@@ -330,7 +329,7 @@ public class DefaultEventLoop implements Runnable, EventLoop, ProtocolDriver
           handler.registered(c.register(selector, ops, handler));
         }
         catch (ClosedChannelException cce) {
-          handler.handleException(cce, DefaultEventLoop.this);
+          handler.handleException(cce);
         }
       }
 
@@ -421,10 +420,15 @@ public class DefaultEventLoop implements Runnable, EventLoop, ProtocolDriver
 
               boolean disconnected = true;
               if (key.isValid()) {
+                /**
+                 * TODO
+                 */
+                /*
                 if ((key.interestOps() & SelectionKey.OP_WRITE) != 0) {
                   key.attach(new DisconnectingClientHandler(key));
                   disconnected = false;
                 }
+                */
               }
 
               if (disconnected) {
@@ -433,7 +437,7 @@ public class DefaultEventLoop implements Runnable, EventLoop, ProtocolDriver
                   key.channel().close();
                 }
                 catch (IOException io) {
-                  handler.handleException(io, DefaultEventLoop.this);
+                  handler.handleException(io);
                 }
               }
             }
@@ -490,7 +494,7 @@ public class DefaultEventLoop implements Runnable, EventLoop, ProtocolDriver
               key.channel().close();
             }
             catch (IOException io) {
-              handler.handleException(io, DefaultEventLoop.this);
+              handler.handleException(io);
             }
           }
         }

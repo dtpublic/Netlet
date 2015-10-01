@@ -9,8 +9,8 @@ import java.nio.channels.SocketChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datatorrent.netlet.EventLoop;
 import com.datatorrent.netlet.Listener.ClientListener;
+import com.datatorrent.netlet.ProtocolHandler;
 import com.datatorrent.netlet.ProtocolHandler.ClientProtocolHandler;
 import com.datatorrent.netlet.protocols.ProtocolListenerAdapter;
 
@@ -127,10 +127,10 @@ public class TcpClientHandler extends ProtocolListenerAdapter<ClientListener> im
           }
 
           @Override
-          public void handleException(Exception exception, EventLoop eventloop)
+          public void handleException(Exception exception, ProtocolHandler handler)
           {
             key.attach(this);
-            listener.handleException(exception, eventloop);
+            listener.handleException(exception, handler);
           }
 
           @Override
@@ -157,16 +157,22 @@ public class TcpClientHandler extends ProtocolListenerAdapter<ClientListener> im
       }
     }
     catch (IOException ie) {
-      handleException(ie, protocolDriver);
+      handleException(ie);
       if (channel != null && channel.isOpen()) {
         try {
           channel.close();
         }
         catch (IOException io) {
-          handleException(io, protocolDriver);
+          handleException(io);
         }
       }
     }
 
+  }
+
+  @Override
+  public void disconnectFromDriver()
+  {
+    protocolDriver.disconnect(this);
   }
 }

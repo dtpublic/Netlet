@@ -9,6 +9,7 @@ import java.nio.channels.SocketChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datatorrent.netlet.Listener.ClientListener;
 import com.datatorrent.netlet.ProtocolHandler.ServerProtocolHandler;
 import com.datatorrent.netlet.protocols.ProtocolListenerAdapter;
 
@@ -33,16 +34,22 @@ public class TcpServerHandler extends ProtocolListenerAdapter<TcpServerListener>
       protocolDriver.register(channel, SelectionKey.OP_ACCEPT, this);
     }
     catch (IOException io) {
-      handleException(io, protocolDriver);
+      handleException(io);
       if (channel != null && channel.isOpen()) {
         try {
           channel.close();
         }
         catch (IOException ie) {
-          handleException(ie, protocolDriver);
+          handleException(ie);
         }
       }
     }
+  }
+
+  @Override
+  public void stopServer()
+  {
+    protocolDriver.stop(this);
   }
 
   @Override
