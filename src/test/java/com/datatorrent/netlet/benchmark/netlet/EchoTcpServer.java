@@ -25,12 +25,11 @@ import java.nio.channels.SocketChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datatorrent.netlet.*;
+import com.datatorrent.netlet.ProtocolHandler.ClientProtocolHandler;
 import com.datatorrent.netlet.benchmark.util.BenchmarkConfiguration;
 import com.datatorrent.netlet.benchmark.util.BenchmarkResults;
-import com.datatorrent.netlet.AbstractClient;
-import com.datatorrent.netlet.AbstractServer;
-import com.datatorrent.netlet.DefaultEventLoop;
-import com.datatorrent.netlet.EventLoop;
+import com.datatorrent.netlet.protocols.tcp.TcpServerHandler;
 
 import static java.lang.Thread.sleep;
 
@@ -46,22 +45,23 @@ import static java.lang.Thread.sleep;
 public class EchoTcpServer extends AbstractServer
 {
   private static final Logger logger = LoggerFactory.getLogger(EchoTcpServer.class);
+  private final TcpServerHandler handler = new TcpServerHandler(this);
 
   private EchoTcpServer(final String host, final int port) throws IOException, InterruptedException
   {
     super();
     final DefaultEventLoop defaultEventLoop = DefaultEventLoop.createEventLoop("eventLoop");
     final Thread eventLoopThread = defaultEventLoop.start();
-    defaultEventLoop.start(host, port, this);
+    defaultEventLoop.start(host, port, handler);
     eventLoopThread.join();
   }
 
   @Override
-  public void handleException(Exception e, EventLoop eventLoop)
+  public void handleException(Exception e, ProtocolHandler protocolHandler)
   {
     logger.error("", e);
-    eventLoop.stop(this);
-    ((DefaultEventLoop)eventLoop).stop();
+    handler.stopServer();
+    ((DefaultEventLoop)handler.getProtocolDriver()).stop();
   }
 
   @Override
@@ -82,10 +82,10 @@ public class EchoTcpServer extends AbstractServer
       }
 
       @Override
-      public void handleException(Exception e, EventLoop eventLoop)
+      public void handleException(Exception e, ProtocolHandler handler)
       {
         logger.error("", e);
-        eventLoop.stop(EchoTcpServer.this);
+        ((ClientProtocolHandler)handler).disconnectConnection();
       }
 
       @Override

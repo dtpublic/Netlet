@@ -23,10 +23,10 @@ import java.nio.channels.SocketChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datatorrent.netlet.util.Slice;
 import com.datatorrent.netlet.Listener.ClientListener;
 import com.datatorrent.netlet.NetletThrowable.NetletRuntimeException;
 import com.datatorrent.netlet.util.CircularBuffer;
+import com.datatorrent.netlet.util.Slice;
 
 /**
  * <p>
@@ -123,7 +123,7 @@ public abstract class AbstractClient implements ClientListener
       finally {
         disconnected();
         unregistered(key);
-        key.attach(Listener.NOOP_CLIENT_LISTENER);
+        key.attach(ProtocolHandler.NOOP_HANDLER);
       }
     }
     else {
@@ -335,10 +335,10 @@ public abstract class AbstractClient implements ClientListener
   }
 
   @Override
-  public void handleException(Exception cce, EventLoop el)
+  public void handleException(Exception cce, ProtocolHandler handler)
   {
     logger.debug("Collecting exception in {}", throwables.size(), cce);
-    throwables.offer(NetletThrowable.Util.rewrap(cce, el));
+    throwables.offer(NetletThrowable.Util.rewrap(cce, handler.getProtocolDriver()));
   }
 
   public abstract ByteBuffer buffer();

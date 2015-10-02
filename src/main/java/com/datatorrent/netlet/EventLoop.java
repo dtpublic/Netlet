@@ -17,8 +17,8 @@ package com.datatorrent.netlet;
 
 import java.net.InetSocketAddress;
 
-import com.datatorrent.netlet.Listener.ClientListener;
-import com.datatorrent.netlet.Listener.ServerListener;
+import com.datatorrent.netlet.ProtocolHandler.ClientProtocolHandler;
+import com.datatorrent.netlet.ProtocolHandler.ServerProtocolHandler;
 
 /**
  * <p>EventLoop interface.</p>
@@ -27,17 +27,21 @@ import com.datatorrent.netlet.Listener.ServerListener;
  */
 public interface EventLoop
 {
-  void connect(final InetSocketAddress address, final ClientListener l);
+  //void connect(final InetSocketAddress address, final ClientListener l);
+  void connect(final InetSocketAddress address, final ClientProtocolHandler handler);
 
-  void disconnect(final ClientListener l);
+  //void disconnect(final ClientListener l);
+  void disconnect(final ClientProtocolHandler handler);
 
   //void register(ServerSocketChannel channel, Listener l);
 
   //void register(SocketChannel channel, int ops, Listener l);
 
-  void start(final String host, final int port, final ServerListener l);
+  //void start(final String host, final int port, final ServerListener l);
+  void start(final String host, final int port, final ServerProtocolHandler handler);
 
-  void stop(final ServerListener l);
+  //void stop(final ServerListener l);
+  void stop(final ServerProtocolHandler handler);
 
   void submit(Runnable r);
 

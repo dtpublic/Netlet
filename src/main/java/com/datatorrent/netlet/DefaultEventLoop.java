@@ -17,15 +17,19 @@ package com.datatorrent.netlet;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.channels.*;
-import java.nio.channels.spi.AbstractSelectableChannel;
-import java.util.*;
+import java.nio.channels.ClosedChannelException;
+import java.nio.channels.SelectableChannel;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datatorrent.netlet.Listener.ClientListener;
-import com.datatorrent.netlet.Listener.ServerListener;
+import com.datatorrent.netlet.ProtocolHandler.ClientProtocolHandler;
+import com.datatorrent.netlet.ProtocolHandler.ServerProtocolHandler;
 import com.datatorrent.netlet.util.CircularBuffer;
 
 /**
@@ -34,7 +38,7 @@ import com.datatorrent.netlet.util.CircularBuffer;
  *
  * @since 1.0.0
  */
-public class DefaultEventLoop implements Runnable, EventLoop
+public class DefaultEventLoop implements Runnable, EventLoop, ProtocolDriver
 {
   public static final String eventLoopPropertyName = "com.datatorrent.netlet.disableOptimizedEventLoop";
   public static DefaultEventLoop createEventLoop(final String id) throws IOException
@@ -281,9 +285,9 @@ public class DefaultEventLoop implements Runnable, EventLoop
         }
         else {
           logger.warn("Exception on unregistered SelectionKey {}", sk, ex);
-          Listener l = (Listener)sk.attachment();
-          if (l != null) {
-            l.handleException(ex, this);
+          ProtocolHandler handler = (ProtocolHandler)sk.attachment();
+          if (handler != null) {
+            handler.handleException(ex);
           }
         }
       }
@@ -294,54 +298,8 @@ public class DefaultEventLoop implements Runnable, EventLoop
 
   protected final void handleSelectedKey(final SelectionKey sk) throws IOException
   {
-    switch (sk.readyOps()) {
-      case SelectionKey.OP_ACCEPT:
-        ServerSocketChannel ssc = (ServerSocketChannel)sk.channel();
-        SocketChannel sc = ssc.accept();
-        sc.configureBlocking(false);
-        final ServerListener sl = (ServerListener)sk.attachment();
-        final ClientListener l = sl.getClientConnection(sc, (ServerSocketChannel)sk.channel());
-        register(sc, SelectionKey.OP_READ | SelectionKey.OP_WRITE, l);
-        break;
-
-      case SelectionKey.OP_CONNECT:
-        if (((SocketChannel)sk.channel()).finishConnect()) {
-          ((ClientListener)sk.attachment()).connected();
-        }
-        break;
-
-      case SelectionKey.OP_READ:
-        ((ClientListener)sk.attachment()).read();
-        break;
-
-      case SelectionKey.OP_WRITE:
-        ((ClientListener)sk.attachment()).write();
-        break;
-
-      case SelectionKey.OP_READ | SelectionKey.OP_WRITE:
-        ((ClientListener)sk.attachment()).read();
-        ((ClientListener)sk.attachment()).write();
-        break;
-
-      case SelectionKey.OP_WRITE | SelectionKey.OP_CONNECT:
-      case SelectionKey.OP_READ | SelectionKey.OP_CONNECT:
-      case SelectionKey.OP_READ | SelectionKey.OP_WRITE | SelectionKey.OP_CONNECT:
-        if (((SocketChannel)sk.channel()).finishConnect()) {
-          ((ClientListener)sk.attachment()).connected();
-          if (sk.isReadable()) {
-            ((ClientListener)sk.attachment()).read();
-          }
-          if (sk.isWritable()) {
-            ((ClientListener)sk.attachment()).write();
-          }
-        }
-        break;
-
-      default:
-        logger.warn("!!!!!! not sure what interest this is {} !!!!!!", Integer.toBinaryString(sk.readyOps()));
-        break;
-    }
-
+    ProtocolHandler handler = (ProtocolHandler)sk.attachment();
+    handler.handleSelectedKey(sk);
   }
 
   @Override
@@ -360,7 +318,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
     }
   }
 
-  private void register(final SelectableChannel c, final int ops, final Listener l)
+  public void register(final SelectableChannel c, final int ops, final ProtocolHandler handler)
   {
     submit(new Runnable()
     {
@@ -368,24 +326,24 @@ public class DefaultEventLoop implements Runnable, EventLoop
       public void run()
       {
         try {
-          l.registered(c.register(selector, ops, l));
+          handler.registered(c.register(selector, ops, handler));
         }
         catch (ClosedChannelException cce) {
-          l.handleException(cce, DefaultEventLoop.this);
+          handler.handleException(cce);
         }
       }
 
       @Override
       public String toString()
       {
-        return String.format("register(%s, %d, %s)", c, ops, l);
+        return String.format("register(%s, %d, %s)", c, ops, handler);
       }
 
     });
   }
 
   //@Override
-  public void unregister(final SelectableChannel c)
+  public void unregister(final ProtocolHandler handler)
   {
     submit(new Runnable()
     {
@@ -393,10 +351,10 @@ public class DefaultEventLoop implements Runnable, EventLoop
       public void run()
       {
         for (SelectionKey key : selector.keys()) {
-          if (key.channel() == c) {
+          if (key.channel() == handler) {
             ((Listener)key.attachment()).unregistered(key);
             key.interestOps(0);
-            key.attach(Listener.NOOP_LISTENER);
+            key.attach(ProtocolHandler.NOOP_HANDLER);
           }
         }
       }
@@ -404,12 +362,13 @@ public class DefaultEventLoop implements Runnable, EventLoop
       @Override
       public String toString()
       {
-        return String.format("unregister(%s)", c);
+        return String.format("unregister(%s)", handler);
       }
 
     });
   }
 
+  /*
   //@Override
   public void register(ServerSocketChannel channel, Listener l)
   {
@@ -421,123 +380,31 @@ public class DefaultEventLoop implements Runnable, EventLoop
   {
     register((AbstractSelectableChannel)channel, ops, l);
   }
+  */
 
   @Override
-  public final void connect(final InetSocketAddress address, final ClientListener l)
+  public final void connect(final InetSocketAddress address, final ClientProtocolHandler handler)
   {
+    handler.init(this);
     submit(new Runnable()
     {
       @Override
       public void run()
       {
-        SocketChannel channel = null;
-        try {
-          channel = SocketChannel.open();
-          channel.configureBlocking(false);
-          if (channel.connect(address)) {
-            l.connected();
-            register(channel, SelectionKey.OP_READ, l);
-          }
-          else {
-            /*
-             * According to the spec SelectionKey.OP_READ is not necessary here, but without it
-             * occasionally channel key will not be selected after connection is established and finishConnect()
-             * will return true.
-             */
-            register(channel, SelectionKey.OP_CONNECT | SelectionKey.OP_READ, new ClientListener()
-            {
-              private SelectionKey key;
-
-              @Override
-              public void read() throws IOException
-              {
-                logger.debug("missing OP_CONNECT");
-                connected();
-                l.read();
-              }
-
-              @Override
-              public void write() throws IOException
-              {
-                logger.debug("missing OP_CONNECT");
-                connected();
-                l.write();
-              }
-
-              @Override
-              public void connected()
-              {
-                logger.debug("{}", this);
-                key.attach(l);
-                l.connected();
-                key.interestOps(SelectionKey.OP_READ | SelectionKey.OP_WRITE);
-              }
-
-              @Override
-              public void disconnected()
-              {
-                /*
-                 * Expectation is that connected() or read() will be called and this ClientListener will be replaced
-                 * by the original ClientListener in the key attachment before disconnect is initiated. In any case
-                 * as original Client Listener was never attached to the key, this method will never be called. Please
-                 * see DefaultEventLoop.disconnect().
-                 */
-                logger.debug("missing OP_CONNECT {}", this);
-                throw new NotYetConnectedException();
-              }
-
-              @Override
-              public void handleException(Exception exception, EventLoop eventloop)
-              {
-                key.attach(l);
-                l.handleException(exception, eventloop);
-              }
-
-              @Override
-              public void registered(SelectionKey key)
-              {
-                l.registered(this.key = key);
-              }
-
-              @Override
-              public void unregistered(SelectionKey key)
-              {
-                l.unregistered(key);
-              }
-
-              @Override
-              public String toString()
-              {
-                return "Pre-connect Client listener for " + l.toString();
-              }
-
-            });
-          }
-        }
-        catch (IOException ie) {
-          l.handleException(ie, DefaultEventLoop.this);
-          if (channel != null && channel.isOpen()) {
-            try {
-              channel.close();
-            }
-            catch (IOException io) {
-              l.handleException(io, DefaultEventLoop.this);
-            }
-          }
-        }
+        handler.connect(address);
       }
 
       @Override
       public String toString()
       {
-        return String.format("connect(%s, %s)", address, l);
+        return String.format("connect(%s, %s)", address, handler);
       }
 
     });
   }
 
   @Override
-  public final void disconnect(final ClientListener l)
+  public final void disconnect(final ClientProtocolHandler handler)
   {
     submit(new Runnable()
     {
@@ -545,27 +412,32 @@ public class DefaultEventLoop implements Runnable, EventLoop
       public void run()
       {
         for (SelectionKey key : selector.keys()) {
-          if (key.attachment() == l) {
+          if (key.attachment() == handler) {
             try {
-              l.unregistered(key);
+              handler.unregistered(key);
             }
             finally {
 
               boolean disconnected = true;
               if (key.isValid()) {
+                /**
+                 * TODO
+                 */
+                /*
                 if ((key.interestOps() & SelectionKey.OP_WRITE) != 0) {
-                  key.attach(new Listener.DisconnectingListener(key));
+                  key.attach(new DisconnectingClientHandler(key));
                   disconnected = false;
                 }
+                */
               }
 
               if (disconnected) {
                 try {
-                  key.attach(Listener.NOOP_CLIENT_LISTENER);
+                  key.attach(ClientProtocolHandler.NOOP_CLIENT_HANDLER);
                   key.channel().close();
                 }
                 catch (IOException io) {
-                  l.handleException(io, DefaultEventLoop.this);
+                  handler.handleException(io);
                 }
               }
             }
@@ -576,51 +448,35 @@ public class DefaultEventLoop implements Runnable, EventLoop
       @Override
       public String toString()
       {
-        return String.format("disconnect(%s)", l);
+        return String.format("disconnect(%s)", handler);
       }
 
     });
   }
 
   @Override
-  public final void start(final String host, final int port, final ServerListener l)
+  public final void start(final String host, final int port, final ServerProtocolHandler handler)
   {
+    handler.init(this);
     submit(new Runnable()
     {
       @Override
       public void run()
       {
-        ServerSocketChannel channel = null;
-        try {
-          channel = ServerSocketChannel.open();
-          channel.configureBlocking(false);
-          channel.socket().bind(host == null ? new InetSocketAddress(port) : new InetSocketAddress(host, port), 128);
-          register(channel, SelectionKey.OP_ACCEPT, l);
-        }
-        catch (IOException io) {
-          l.handleException(io, DefaultEventLoop.this);
-          if (channel != null && channel.isOpen()) {
-            try {
-              channel.close();
-            }
-            catch (IOException ie) {
-              l.handleException(ie, DefaultEventLoop.this);
-            }
-          }
-        }
+        handler.start(host, port);
       }
 
       @Override
       public String toString()
       {
-        return String.format("start(%s, %d, %s)", host, port, l);
+        return String.format("start(%s, %d, %s)", host, port, handler);
       }
 
     });
   }
 
   @Override
-  public final void stop(final ServerListener l)
+  public final void stop(final ServerProtocolHandler handler)
   {
     submit(new Runnable()
     {
@@ -628,17 +484,17 @@ public class DefaultEventLoop implements Runnable, EventLoop
       public void run()
       {
         for (SelectionKey key : selector.keys()) {
-          if (key.attachment() == l) {
+          if (key.attachment() == handler) {
             if (key.isValid()) {
-              l.unregistered(key);
+              handler.unregistered(key);
               key.cancel();
             }
-            key.attach(Listener.NOOP_LISTENER);
+            key.attach(ProtocolHandler.NOOP_HANDLER);
             try {
               key.channel().close();
             }
             catch (IOException io) {
-              l.handleException(io, DefaultEventLoop.this);
+              handler.handleException(io);
             }
           }
         }
@@ -647,7 +503,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
       @Override
       public String toString()
       {
-        return String.format("stop(%s)", l);
+        return String.format("stop(%s)", handler);
       }
 
     });

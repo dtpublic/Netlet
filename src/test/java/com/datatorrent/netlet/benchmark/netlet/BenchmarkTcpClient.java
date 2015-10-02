@@ -23,11 +23,12 @@ import java.nio.channels.SelectionKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datatorrent.netlet.benchmark.util.BenchmarkConfiguration;
-import com.datatorrent.netlet.benchmark.util.BenchmarkResults;
 import com.datatorrent.netlet.AbstractClient;
 import com.datatorrent.netlet.DefaultEventLoop;
-import com.datatorrent.netlet.EventLoop;
+import com.datatorrent.netlet.ProtocolHandler;
+import com.datatorrent.netlet.benchmark.util.BenchmarkConfiguration;
+import com.datatorrent.netlet.benchmark.util.BenchmarkResults;
+import com.datatorrent.netlet.protocols.tcp.TcpClientHandler;
 
 import static java.lang.Thread.sleep;
 
@@ -53,12 +54,13 @@ public class BenchmarkTcpClient extends AbstractClient
   private final ByteBuffer sendByteBuffer = ByteBuffer.allocate(BenchmarkConfiguration.messageSize);
   private final BenchmarkResults benchmarkResults = new BenchmarkResults(BenchmarkConfiguration.messageCount);
   private final DefaultEventLoop eventLoop = DefaultEventLoop.createEventLoop("EventLoop");
+  private final TcpClientHandler handler = new TcpClientHandler(this);
 
   private BenchmarkTcpClient(final String host, final int port) throws IOException, InterruptedException
   {
     super();
     final Thread eventLoopThread = eventLoop.start();
-    eventLoop.connect(new InetSocketAddress(host, port), this);
+    eventLoop.connect(new InetSocketAddress(host, port), handler);
     eventLoopThread.join();
   }
 
@@ -69,7 +71,7 @@ public class BenchmarkTcpClient extends AbstractClient
   }
 
   @Override
-  public void handleException(Exception e, EventLoop eventLoop)
+  public void handleException(Exception e, ProtocolHandler handler)
   {
     logger.error("", e);
     this.eventLoop.stop();
@@ -106,7 +108,7 @@ public class BenchmarkTcpClient extends AbstractClient
   {
     if (readByteBuffer.position() != readByteBuffer.capacity()) {
       logger.error("Read buffer position {} != capacity {}", readByteBuffer.position(), readByteBuffer.capacity());
-      eventLoop.disconnect(this);
+      handler.disconnectConnection();
       return;
     }
 
@@ -114,11 +116,11 @@ public class BenchmarkTcpClient extends AbstractClient
     long timestamp = readByteBuffer.getLong();
     if (timestamp < -2) {
       logger.error("Received bad timestamp {}", timestamp);
-      eventLoop.disconnect(this);
+      handler.disconnectConnection();
       return;
     } else if (timestamp != this.timestamp) {
       logger.error("Received bad timestamp {}. Sent timestamp {}", timestamp, this.timestamp);
-      eventLoop.disconnect(this);
+      handler.disconnectConnection();
       return;
     } else if (timestamp > 0) {
       benchmarkResults.addResult(System.nanoTime() - timestamp);
@@ -143,7 +145,7 @@ public class BenchmarkTcpClient extends AbstractClient
       write();
     } catch (Exception e) {
       logger.error("", e);
-      eventLoop.disconnect(this);
+      handler.disconnectConnection();
       return;
     }
     sendByteBuffer.clear();
@@ -165,7 +167,7 @@ public class BenchmarkTcpClient extends AbstractClient
       if (++count == BenchmarkConfiguration.messageCount) {
         send(-2);
         logger.info("Finished sending messages! Sent {} messages.", count);
-        eventLoop.disconnect(this);
+        handler.disconnectConnection();
       } else {
         send(System.nanoTime());
       }

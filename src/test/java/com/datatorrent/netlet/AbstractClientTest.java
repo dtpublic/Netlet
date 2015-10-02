@@ -19,7 +19,6 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
-import static java.lang.Thread.sleep;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -27,6 +26,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.datatorrent.netlet.ServerTest.ServerImpl;
+import com.datatorrent.netlet.protocols.tcp.TcpClientHandler;
+import com.datatorrent.netlet.protocols.tcp.TcpServerHandler;
+
+import static java.lang.Thread.sleep;
 
 public class AbstractClientTest
 {
@@ -97,10 +100,13 @@ public class AbstractClientTest
     ServerImpl si = new ServerImpl();
     ClientImpl ci = new ClientImpl();
 
+    TcpServerHandler serverHandler = new TcpServerHandler(si);
+    TcpClientHandler clientHandler = new TcpClientHandler(ci);
+
     new Thread(el).start();
 
-    el.start("localhost", port, si);
-    el.connect(new InetSocketAddress("localhost", port), ci);
+    el.start("localhost", port, serverHandler);
+    el.connect(new InetSocketAddress("localhost", port), clientHandler);
 
     ByteBuffer outboundBuffer = ByteBuffer.allocate(ClientImpl.BUFFER_CAPACITY);
     LongBuffer lb = outboundBuffer.asLongBuffer();
@@ -124,8 +130,8 @@ public class AbstractClientTest
 
     sleep(100);
 
-    el.disconnect(ci);
-    el.stop(si);
+    el.disconnect(clientHandler);
+    el.stop(serverHandler);
     el.stop();
     Assert.assertTrue(ci.read);
   }

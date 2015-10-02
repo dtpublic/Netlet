@@ -26,6 +26,9 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datatorrent.netlet.protocols.tcp.TcpClientHandler;
+import com.datatorrent.netlet.protocols.tcp.TcpServerHandler;
+
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -86,10 +89,12 @@ public class SuspendedReadTest
   {
     Server server = new Server();
     Client client = new Client();
+    TcpServerHandler serverHandler = new TcpServerHandler(server);
+    TcpClientHandler clientHandler = new TcpClientHandler(client);
     DefaultEventLoop eventLoop = DefaultEventLoop.createEventLoop("test");
     eventLoop.start();
-    eventLoop.start("localhost", 5035, server);
-    eventLoop.connect(new InetSocketAddress("localhost", 5035), client);
+    eventLoop.start("localhost", 5035, serverHandler);
+    eventLoop.connect(new InetSocketAddress("localhost", 5035), clientHandler);
     byte[] data = new byte[1024];
     int i = 0;
     while(client.send(data))

@@ -22,14 +22,14 @@ import java.nio.channels.ServerSocketChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datatorrent.netlet.Listener.ServerListener;
+import com.datatorrent.netlet.protocols.tcp.TcpServerListener;
 
 /**
  * <p>Abstract AbstractServer class.</p> *
  *
  * @since 1.0.0
  */
-public abstract class AbstractServer implements ServerListener
+public abstract class AbstractServer implements TcpServerListener
 {
   SocketAddress boundAddress;
 
@@ -45,7 +45,7 @@ public abstract class AbstractServer implements ServerListener
   }
 
   @Override
-  public void handleException(Exception cce, EventLoop el)
+  public void handleException(Exception cce, ProtocolHandler handler)
   {
     logger.debug("", cce);
   }
