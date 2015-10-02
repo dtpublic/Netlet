@@ -19,10 +19,11 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
-import static java.lang.Thread.sleep;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static java.lang.Thread.sleep;
 
 /**
  * Provides a premium implementation of circular buffer<p>
@@ -265,7 +266,7 @@ public class CircularBuffer<T> implements UnsafeBlockingQueue<T>
   {
     int i = -1;
     int pos;
-    while (i++ < maxElements && head > tail) {
+    while (++i < maxElements && head > tail) {
       pos = (int)(tail & buffermask);
       collection.add(buffer[pos]);
       buffer[pos] = null;
