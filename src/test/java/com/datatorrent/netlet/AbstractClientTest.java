@@ -17,8 +17,17 @@ package com.datatorrent.netlet;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.SocketAddress;
+import java.net.SocketOption;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
+import java.nio.channels.SelectableChannel;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.SocketChannel;
+import java.util.Set;
+
 import static java.lang.Thread.sleep;
 
 import org.junit.Assert;
@@ -27,6 +36,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.datatorrent.netlet.ServerTest.ServerImpl;
+import com.datatorrent.netlet.util.CircularBuffer;
+import com.datatorrent.netlet.util.Slice;
 
 public class AbstractClientTest
 {
@@ -83,6 +94,31 @@ public class AbstractClientTest
     @Override
     public void disconnected()
     {
+    }
+
+    private CircularBuffer<Slice> getSendBuffer4Polls()
+    {
+      return sendBuffer4Polls;
+    }
+
+    private void setSendBuffer4Polls(CircularBuffer<Slice> circularBuffer)
+    {
+      sendBuffer4Polls = circularBuffer;
+    }
+
+    private CircularBuffer<Slice> getSendBuffer4Offers()
+    {
+      return sendBuffer4Offers;
+    }
+
+    private void setSendBuffer4Offers(CircularBuffer<Slice> circularBuffer)
+    {
+      sendBuffer4Offers = circularBuffer;
+    }
+
+    private ByteBuffer getWriteBuffer()
+    {
+      return writeBuffer;
     }
 
   }
@@ -157,6 +193,210 @@ public class AbstractClientTest
     Assert.assertEquals(OptimizedEventLoop.class, DefaultEventLoop.createEventLoop("test").getClass());
     System.setProperty(DefaultEventLoop.eventLoopPropertyName, "yes");
     Assert.assertEquals(DefaultEventLoop.class, DefaultEventLoop.createEventLoop("test").getClass());
+  }
+
+  @Test
+  public void testOneSlice() throws IOException
+  {
+    ClientImpl ci = new ClientImpl();
+    ci.setSendBuffer4Polls(new CircularBufferWrapper(1));
+    ci.setSendBuffer4Offers(ci.getSendBuffer4Polls());
+    ci.key = new SelectionKey()
+    {
+      private int interestOps;
+
+      SocketChannel channel = new SocketChannel(null)
+      {
+        @Override
+        public SocketChannel bind(SocketAddress local) throws IOException
+        {
+          return null;
+        }
+
+        @Override
+        public <T> SocketChannel setOption(SocketOption<T> name, T value) throws IOException
+        {
+          return null;
+        }
+
+        @Override
+        public SocketChannel shutdownInput() throws IOException
+        {
+          return null;
+        }
+
+        @Override
+        public SocketChannel shutdownOutput() throws IOException
+        {
+          return null;
+        }
+
+        @Override
+        public Socket socket()
+        {
+          return null;
+        }
+
+        @Override
+        public boolean isConnected()
+        {
+          return false;
+        }
+
+        @Override
+        public boolean isConnectionPending()
+        {
+          return false;
+        }
+
+        @Override
+        public boolean connect(SocketAddress remote) throws IOException
+        {
+          return false;
+        }
+
+        @Override
+        public boolean finishConnect() throws IOException
+        {
+          return false;
+        }
+
+        @Override
+        public SocketAddress getRemoteAddress() throws IOException
+        {
+          return null;
+        }
+
+        @Override
+        public int read(ByteBuffer dst) throws IOException
+        {
+          return 0;
+        }
+
+        @Override
+        public long read(ByteBuffer[] dsts, int offset, int length) throws IOException
+        {
+          return 0;
+        }
+
+        @Override
+        public int write(ByteBuffer src) throws IOException
+        {
+          final int remaining = src.remaining();
+          src.position(src.position() + remaining);
+          return remaining;
+        }
+
+        @Override
+        public long write(ByteBuffer[] srcs, int offset, int length) throws IOException
+        {
+          return 0;
+        }
+
+        @Override
+        protected void implCloseSelectableChannel() throws IOException
+        {
+
+        }
+
+        @Override
+        protected void implConfigureBlocking(boolean block) throws IOException
+        {
+
+        }
+
+        @Override
+        public SocketAddress getLocalAddress() throws IOException
+        {
+          return null;
+        }
+
+        @Override
+        public <T> T getOption(SocketOption<T> name) throws IOException
+        {
+          return null;
+        }
+
+        @Override
+        public Set<SocketOption<?>> supportedOptions()
+        {
+          return null;
+        }
+      };
+
+      @Override
+      public SelectableChannel channel() {
+        return channel;
+      }
+
+      @Override
+      public Selector selector()
+      {
+        return null;
+      }
+
+      @Override
+      public boolean isValid()
+      {
+        return true;
+      }
+
+      @Override
+      public void cancel()
+      {
+
+      }
+
+      @Override
+      public int interestOps()
+      {
+        return interestOps;
+      }
+
+      @Override
+      public SelectionKey interestOps(int ops)
+      {
+        if ((ops & ~OP_WRITE) != 0)
+        {
+          throw new IllegalArgumentException();
+        }
+        interestOps = ops;
+        return this;
+      }
+
+      @Override
+      public int readyOps()
+      {
+        return OP_WRITE;
+      }
+    };
+    ci.send(new byte[ci.getWriteBuffer().remaining()]);
+    ci.write();
+  }
+
+  private static class CircularBufferWrapper extends CircularBuffer<Slice>
+  {
+    private CircularBufferWrapper(int capacity)
+    {
+      super(capacity);
+    }
+
+    @Override
+    public Slice pollUnsafe()
+    {
+      Slice f = super.pollUnsafe();
+      Assert.assertTrue("Unexpected slice length: " + f.length, f.length > 0);
+      return f;
+    }
+
+    @Override
+    public Slice peekUnsafe()
+    {
+      Slice f = super.peekUnsafe();
+      Assert.assertTrue("Unexpected slice length: " + f.length, f.length > 0);
+      return f;
+    }
+
   }
 
   private static final Logger logger = LoggerFactory.getLogger(AbstractClientTest.class);
