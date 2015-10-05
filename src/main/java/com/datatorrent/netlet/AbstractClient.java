@@ -199,7 +199,7 @@ public abstract class AbstractClient implements ClientListener
     if ((size = sendBuffer4Polls.size()) > 0 && (remaining = writeBuffer.remaining()) > 0) {
       do {
         Slice f = sendBuffer4Polls.peekUnsafe();
-        if (remaining <= f.length) {
+        if (remaining < f.length) {
           writeBuffer.put(f.buffer, f.offset, remaining);
           f.offset += remaining;
           f.length -= remaining;
@@ -238,7 +238,7 @@ public abstract class AbstractClient implements ClientListener
         remaining = writeBuffer.capacity();
         do {
           Slice f = sendBuffer4Polls.peekUnsafe();
-          if (remaining <= f.length) {
+          if (remaining < f.length) {
             writeBuffer.put(f.buffer, f.offset, remaining);
             f.offset += remaining;
             f.length -= remaining;
