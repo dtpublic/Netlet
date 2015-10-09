@@ -28,8 +28,6 @@ import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.Set;
 
-import static java.lang.Thread.sleep;
-
 import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -38,6 +36,8 @@ import org.slf4j.LoggerFactory;
 import com.datatorrent.netlet.ServerTest.ServerImpl;
 import com.datatorrent.netlet.util.CircularBuffer;
 import com.datatorrent.netlet.util.Slice;
+
+import static java.lang.Thread.sleep;
 
 public class AbstractClientTest
 {
@@ -373,6 +373,35 @@ public class AbstractClientTest
     ci.send(new byte[ci.getWriteBuffer().remaining()]);
     ci.write();
   }
+
+
+  @Test
+  public void testMaxSendBufferBytes() throws IOException, InterruptedException
+  {
+    OptimizedEventLoop el = new OptimizedEventLoop("TestLoop");
+    ClientImpl client = new ClientImpl();
+    client.setMaxSendBufferBytes(200);
+    // Send data before server is started and check for limits
+    byte[] b = new byte[100];
+    Assert.assertTrue("Send data", client.send(b, 0, 100));
+    Assert.assertTrue("Send data", client.send(b, 0, 100));
+    Assert.assertFalse("Send data", client.send(b, 0, 100));
+    ServerImpl server = new ServerImpl();
+    new Thread(el).start();
+    el.start("localhost", 5050, server);
+    el.connect(new InetSocketAddress("localhost", 5050), client);
+    // Wait for a maximum 30s to see if there is room to send new data
+    boolean sent;
+    long startTime = System.currentTimeMillis();
+    while ( (!(sent = client.send(b, 0, 100))) && ((System.currentTimeMillis() - startTime) <= 30000)) {
+      sleep(5);
+    }
+    Assert.assertTrue("Send data", sent);
+    el.disconnect(client);
+    el.stop(server);
+    el.stop();
+  }
+
 
   private static class CircularBufferWrapper extends CircularBuffer<Slice>
   {

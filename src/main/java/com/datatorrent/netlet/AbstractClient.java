@@ -38,14 +38,21 @@ public abstract class AbstractClient implements ClientListener
 {
   private static final int THROWABLES_COLLECTION_SIZE = 4;
   public static final int MAX_SENDBUFFER_SIZE;
+  public static final int MAX_SENDBUFFER_BYTES;
 
   protected final CircularBuffer<NetletThrowable> throwables;
   protected final CircularBuffer<CircularBuffer<Slice>> bufferOfBuffers;
   protected final CircularBuffer<Slice> freeBuffer;
   protected CircularBuffer<Slice> sendBuffer4Offers, sendBuffer4Polls;
+  // Using two counters for measuring pending send data to avoid using explicit locks of any kind
+  protected volatile long sendBufferBytes, writeBufferBytes;
   protected final ByteBuffer writeBuffer;
   protected boolean write = true;
   protected SelectionKey key;
+
+  // Max send buffer bytes
+  // This overrides the default specified from property
+  private int maxSendBufferBytes;
 
   public boolean isConnected()
   {
@@ -88,6 +95,7 @@ public abstract class AbstractClient implements ClientListener
     }
     sendBuffer4Polls = sendBuffer4Offers = new CircularBuffer<Slice>(sendBufferSize, 10);
     freeBuffer = new CircularBuffer<Slice>(sendBufferSize, 10);
+    maxSendBufferBytes = MAX_SENDBUFFER_BYTES;
   }
 
   @Override
@@ -195,8 +203,9 @@ public abstract class AbstractClient implements ClientListener
     /*
      * at first when we enter this function, our buffer is in fill mode.
      */
-    int remaining, size;
+    int remaining, size, curr;
     if ((size = sendBuffer4Polls.size()) > 0 && (remaining = writeBuffer.remaining()) > 0) {
+      curr = remaining;
       do {
         Slice f = sendBuffer4Polls.peekUnsafe();
         if (remaining < f.length) {
@@ -212,6 +221,9 @@ public abstract class AbstractClient implements ClientListener
         }
       }
       while (--size > 0);
+      if (maxSendBufferBytes != Integer.MAX_VALUE) {
+        writeBufferBytes += (curr - writeBuffer.remaining());
+      }
     }
 
     /*
@@ -235,7 +247,7 @@ public abstract class AbstractClient implements ClientListener
          */
         writeBuffer.clear();
 
-        remaining = writeBuffer.capacity();
+        curr = remaining = writeBuffer.capacity();
         do {
           Slice f = sendBuffer4Polls.peekUnsafe();
           if (remaining < f.length) {
@@ -251,6 +263,9 @@ public abstract class AbstractClient implements ClientListener
           }
         }
         while (--size > 0);
+        if (maxSendBufferBytes != Integer.MAX_VALUE) {
+          writeBufferBytes += (curr - writeBuffer.remaining());
+        }
 
         /*
          * switch to the read mode.
@@ -286,6 +301,22 @@ public abstract class AbstractClient implements ClientListener
 
   public boolean send(byte[] array, int offset, int len)
   {
+    // Don't perform for send bytes calculation if this limit was not set
+    if (maxSendBufferBytes != Integer.MAX_VALUE) {
+      // Handle wrap over of long
+      long pendingBytes = 0;
+      if ((sendBufferBytes < 0) && (writeBufferBytes >= 0)) {
+        pendingBytes = -(sendBufferBytes + writeBufferBytes);
+      } else {
+        pendingBytes = sendBufferBytes - writeBufferBytes;
+      }
+
+      // If we cross the limit then don't send the data
+      if ((maxSendBufferBytes - pendingBytes) < len) {
+        return false;
+      }
+    }
+
     Slice f;
     if (freeBuffer.isEmpty()) {
       f = new Slice(array, offset, len);
@@ -306,6 +337,7 @@ public abstract class AbstractClient implements ClientListener
         }
       }
 
+      sendBufferBytes += len;
       return true;
     }
 
@@ -327,6 +359,7 @@ public abstract class AbstractClient implements ClientListener
           key.selector().wakeup();
         }
 
+        sendBufferBytes += len;
         return true;
       }
     }
@@ -386,6 +419,16 @@ public abstract class AbstractClient implements ClientListener
     }
   }
 
+  public int getMaxSendBufferBytes()
+  {
+    return maxSendBufferBytes;
+  }
+
+  public void setMaxSendBufferBytes(int maxSendBufferBytes)
+  {
+    this.maxSendBufferBytes = maxSendBufferBytes;
+  }
+
   private static final Logger logger = LoggerFactory.getLogger(AbstractClient.class);
 
   /* implemented here since it requires access to logger. */
@@ -416,6 +459,17 @@ public abstract class AbstractClient implements ClientListener
       }
     }
     MAX_SENDBUFFER_SIZE = size;
+    int bytes = Integer.MAX_VALUE;
+    property = System.getProperty("NETLET.MAX_SENDBUFFER_BYTES");
+    if (property != null) {
+      try {
+        bytes = Integer.parseInt(property);
+      }
+      catch (Exception exception) {
+        logger.warn("{} set to {} since {} could not be parsed as an integer.", "NETLET.MAX_SENDBUFFER_BYTES", bytes, property, exception);
+      }
+    }
+    MAX_SENDBUFFER_BYTES = bytes;
   }
 
 }
