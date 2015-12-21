@@ -15,6 +15,14 @@
  */
 package com.datatorrent.netlet;
 
+import com.datatorrent.netlet.ServerTest.ServerImpl;
+import com.datatorrent.netlet.util.CircularBuffer;
+import com.datatorrent.netlet.util.Slice;
+import org.junit.Assert;
+import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -27,15 +35,6 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.Set;
-
-import org.junit.Assert;
-import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.datatorrent.netlet.ServerTest.ServerImpl;
-import com.datatorrent.netlet.util.CircularBuffer;
-import com.datatorrent.netlet.util.Slice;
 
 import static java.lang.Thread.sleep;
 
@@ -381,6 +380,7 @@ public class AbstractClientTest
     OptimizedEventLoop el = new OptimizedEventLoop("TestLoop");
     ClientImpl client = new ClientImpl();
     client.setMaxSendBufferBytes(200);
+    client.setWriteCountUpdateInterval(5000);
     // Send data before server is started and check for limits
     byte[] b = new byte[100];
     Assert.assertTrue("Send data", client.send(b, 0, 100));

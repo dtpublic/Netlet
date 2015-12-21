@@ -15,18 +15,17 @@
  */
 package com.datatorrent.netlet;
 
+import com.datatorrent.netlet.Listener.ClientListener;
+import com.datatorrent.netlet.NetletThrowable.NetletRuntimeException;
+import com.datatorrent.netlet.util.CircularBuffer;
+import com.datatorrent.netlet.util.Slice;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.datatorrent.netlet.util.Slice;
-import com.datatorrent.netlet.Listener.ClientListener;
-import com.datatorrent.netlet.NetletThrowable.NetletRuntimeException;
-import com.datatorrent.netlet.util.CircularBuffer;
 
 /**
  * <p>
@@ -39,20 +38,26 @@ public abstract class AbstractClient implements ClientListener
   private static final int THROWABLES_COLLECTION_SIZE = 4;
   public static final int MAX_SENDBUFFER_SIZE;
   public static final int MAX_SENDBUFFER_BYTES;
+  private static final long WRITE_COUNT_UPDATE_INTERVAL;
 
   protected final CircularBuffer<NetletThrowable> throwables;
   protected final CircularBuffer<CircularBuffer<Slice>> bufferOfBuffers;
   protected final CircularBuffer<Slice> freeBuffer;
   protected CircularBuffer<Slice> sendBuffer4Offers, sendBuffer4Polls;
   // Using two counters for measuring pending send data to avoid using explicit locks of any kind
-  protected volatile long sendBufferBytes, writeBufferBytes;
+  protected long sendBufferBytes, currWriteBufferBytes;
+  // Only periodically update write counter that is visible to the send thread
+  protected volatile long writeBufferBytes;
   protected final ByteBuffer writeBuffer;
   protected boolean write = true;
   protected SelectionKey key;
 
-  // Max send buffer bytes
+  // Max send buffer byteswriteBufferBytes
   // This overrides the default specified from property
   private int maxSendBufferBytes;
+  private long writeCountUpdateInterval;
+
+  private long lastWriteUpdateTS;
 
   public boolean isConnected()
   {
@@ -96,6 +101,7 @@ public abstract class AbstractClient implements ClientListener
     sendBuffer4Polls = sendBuffer4Offers = new CircularBuffer<Slice>(sendBufferSize, 10);
     freeBuffer = new CircularBuffer<Slice>(sendBufferSize, 10);
     maxSendBufferBytes = MAX_SENDBUFFER_BYTES;
+    writeCountUpdateInterval = WRITE_COUNT_UPDATE_INTERVAL;
   }
 
   @Override
@@ -222,7 +228,12 @@ public abstract class AbstractClient implements ClientListener
       }
       while (--size > 0);
       if (maxSendBufferBytes != Integer.MAX_VALUE) {
-        writeBufferBytes += (curr - writeBuffer.remaining());
+        currWriteBufferBytes += (curr - writeBuffer.remaining());
+        long currTS = System.currentTimeMillis();
+        if ((currTS - lastWriteUpdateTS) >= writeCountUpdateInterval) {
+          writeBufferBytes = currWriteBufferBytes;
+          lastWriteUpdateTS = currTS;
+        }
       }
     }
 
@@ -301,7 +312,7 @@ public abstract class AbstractClient implements ClientListener
 
   public boolean send(byte[] array, int offset, int len)
   {
-    // Don't perform for send bytes calculation if this limit was not set
+    // Don't perform send bytes calculation if this limit was not set
     if (maxSendBufferBytes != Integer.MAX_VALUE) {
       // Handle wrap over of long
       long pendingBytes = 0;
@@ -429,6 +440,14 @@ public abstract class AbstractClient implements ClientListener
     this.maxSendBufferBytes = maxSendBufferBytes;
   }
 
+  public long getWriteCountUpdateInterval() {
+    return writeCountUpdateInterval;
+  }
+
+  public void setWriteCountUpdateInterval(long writeCountUpdateInterval) {
+    this.writeCountUpdateInterval = writeCountUpdateInterval;
+  }
+
   private static final Logger logger = LoggerFactory.getLogger(AbstractClient.class);
 
   /* implemented here since it requires access to logger. */
@@ -470,6 +489,17 @@ public abstract class AbstractClient implements ClientListener
       }
     }
     MAX_SENDBUFFER_BYTES = bytes;
+    long interval = 30000;
+    property = System.getProperty("NETLET.WRITE_COUNT_UPDATE_INTERVAL");
+    if (property != null) {
+      try {
+        interval = Long.parseLong(property);
+      }
+      catch (Exception exception) {
+        logger.warn("{} set to {} since {} could not be parsed as a long.", "NETLET.WRITE_COUNT_UPDATE_INTERVAL", interval, property, exception);
+      }
+    }
+    WRITE_COUNT_UPDATE_INTERVAL = interval;
   }
 
 }

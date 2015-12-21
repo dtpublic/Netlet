@@ -166,7 +166,7 @@
               <exclude>package.Class#fieldToExclude</exclude>
             </excludes -->
             <accessModifier>protected</accessModifier>
-            <breakBuildOnModifications>true</breakBuildOnModifications>
+            <!--breakBuildOnModifications>true</breakBuildOnModifications-->
             <breakBuildOnBinaryIncompatibleModifications>true</breakBuildOnBinaryIncompatibleModifications>
             <onlyBinaryIncompatible>false</onlyBinaryIncompatible>
             <includeSynthetic>false</includeSynthetic>
