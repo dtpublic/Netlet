@@ -75,9 +75,9 @@ public class OptimizedEventLoop extends DefaultEventLoop
       }
       keys[pos++] = key;
       if (pos == keys.length) {
-        SelectionKey[] keys = new SelectionKey[this.keys.length << 1];
-        System.arraycopy(this.keys, 0, keys, 0, pos);
-        this.keys = keys;
+        SelectionKey[] lKeys = new SelectionKey[this.keys.length << 1];
+        System.arraycopy(this.keys, 0, lKeys, 0, pos);
+        this.keys = lKeys;
       }
       return true;
     }
@@ -88,6 +88,7 @@ public class OptimizedEventLoop extends DefaultEventLoop
       return pos;
     }
 
+    @Override
     public boolean remove(Object o) {
       return false;
     }
@@ -112,7 +113,7 @@ public class OptimizedEventLoop extends DefaultEventLoop
     }
   }
 
-  @SuppressWarnings("deprecation")
+  @SuppressWarnings( {"deprecation", "UseSpecificCatch"})
   public OptimizedEventLoop(String id) throws IOException
   {
     super(id);
@@ -149,6 +150,7 @@ public class OptimizedEventLoop extends DefaultEventLoop
   }
 
   @SuppressWarnings({"SleepWhileInLoop", "ConstantConditions"})
+  @Override
   protected void runEventLoop()
   {
     Set<SelectionKey> selectedKeys = selector.selectedKeys();
