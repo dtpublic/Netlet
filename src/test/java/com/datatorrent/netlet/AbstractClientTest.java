@@ -135,7 +135,7 @@ public class AbstractClientTest
 
     new Thread(el).start();
 
-    el.start("localhost", 0, si);
+    el.start(new InetSocketAddress("localhost", 0), si);
 
     SocketAddress address;
     synchronized (si) {
