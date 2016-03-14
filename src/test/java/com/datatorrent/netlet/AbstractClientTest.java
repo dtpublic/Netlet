@@ -26,6 +26,7 @@ import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.nio.channels.UnresolvedAddressException;
 import java.util.Set;
 
 import static java.lang.Thread.sleep;
@@ -397,6 +398,28 @@ public class AbstractClientTest
       return f;
     }
 
+  }
+
+  @Test
+  public void testUnresolvedException() throws IOException, InterruptedException
+  {
+    final DefaultEventLoop eventLoop = DefaultEventLoop.createEventLoop("test");
+    final Thread thread = eventLoop.start();
+    ClientImpl ci = new ClientImpl() {
+      @Override
+      public void handleException(Exception cce, EventLoop el)
+      {
+        Assert.assertSame(el, eventLoop);
+        Assert.assertTrue(cce instanceof UnresolvedAddressException);
+        super.handleException(cce, el);
+        eventLoop.stop();
+      }
+    };
+    eventLoop.connect(new InetSocketAddress("not a valid host name", 5035), ci);
+    thread.join();
+
+    Assert.assertFalse(ci.isConnected());
+    Assert.assertNotNull(ci.throwables.poll());
   }
 
   private static final Logger logger = LoggerFactory.getLogger(AbstractClientTest.class);

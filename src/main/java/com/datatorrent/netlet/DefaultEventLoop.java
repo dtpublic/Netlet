@@ -437,8 +437,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
           if (channel.connect(address)) {
             l.connected();
             register(channel, SelectionKey.OP_READ, l);
-          }
-          else {
+          } else {
             /*
              * According to the spec SelectionKey.OP_READ is not necessary here, but without it
              * occasionally channel key will not be selected after connection is established and finishConnect()
@@ -513,14 +512,18 @@ public class DefaultEventLoop implements Runnable, EventLoop
 
             });
           }
-        }
-        catch (IOException ie) {
-          l.handleException(ie, DefaultEventLoop.this);
+        } catch (UnresolvedAddressException e) {
+          logger.error("Inet Address {} is not resolvable.", address, e);
+          l.handleException(e, DefaultEventLoop.this);
+        } catch (IllegalStateException e) {
+          logger.error("Connect request is not valid for channel {}", channel, e);
+          l.handleException(e, DefaultEventLoop.this);
+        } catch (Exception e) {
+          l.handleException(e, DefaultEventLoop.this);
           if (channel != null && channel.isOpen()) {
             try {
               channel.close();
-            }
-            catch (IOException io) {
+            } catch (IOException io) {
               l.handleException(io, DefaultEventLoop.this);
             }
           }

@@ -49,7 +49,7 @@ public abstract class AbstractClient implements ClientListener
 
   public boolean isConnected()
   {
-    return key.isValid() && ((SocketChannel)key.channel()).isConnected();
+    return key != null && key.isValid() && ((SocketChannel)key.channel()).isConnected();
   }
 
   public AbstractClient(int writeBufferSize, int sendBufferSize)
