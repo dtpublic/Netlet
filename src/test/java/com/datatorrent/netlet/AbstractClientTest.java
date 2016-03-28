@@ -193,6 +193,7 @@ public class AbstractClientTest
     Assert.assertEquals(OptimizedEventLoop.class, DefaultEventLoop.createEventLoop("test").getClass());
     System.setProperty(DefaultEventLoop.eventLoopPropertyName, "yes");
     Assert.assertEquals(DefaultEventLoop.class, DefaultEventLoop.createEventLoop("test").getClass());
+    System.clearProperty(DefaultEventLoop.eventLoopPropertyName);
   }
 
   @Test
