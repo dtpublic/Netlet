@@ -173,6 +173,7 @@ public class CircularBuffer<T> implements UnsafeBlockingQueue<T>
   @SuppressWarnings("SleepWhileInLoop")
   public void put(T e) throws InterruptedException
   {
+    int spinMillis = 0;
     do {
       if (head - tail < buffermask) {
         buffer[(int)(head & buffermask)] = e;
@@ -181,6 +182,7 @@ public class CircularBuffer<T> implements UnsafeBlockingQueue<T>
       }
 
       Thread.sleep(spinMillis);
+      spinMillis = Math.min(this.spinMillis, spinMillis + 1);
     }
     while (true);
   }
@@ -190,6 +192,7 @@ public class CircularBuffer<T> implements UnsafeBlockingQueue<T>
   public boolean offer(T e, long timeout, TimeUnit unit) throws InterruptedException
   {
     long millis = unit.toMillis(timeout);
+    int spinMillis = 0;
     do {
       if (head - tail < buffermask) {
         buffer[(int)(head & buffermask)] = e;
@@ -198,6 +201,7 @@ public class CircularBuffer<T> implements UnsafeBlockingQueue<T>
       }
 
       Thread.sleep(spinMillis);
+      spinMillis = Math.min(this.spinMillis, spinMillis + 1);
     }
     while ((millis -= spinMillis) >= 0);
 
@@ -208,6 +212,7 @@ public class CircularBuffer<T> implements UnsafeBlockingQueue<T>
   @SuppressWarnings("SleepWhileInLoop")
   public T take() throws InterruptedException
   {
+    int spinMillis = 0;
     do {
       if (head > tail) {
         int pos = (int)(tail & buffermask);
@@ -218,6 +223,7 @@ public class CircularBuffer<T> implements UnsafeBlockingQueue<T>
       }
 
       Thread.sleep(spinMillis);
+      spinMillis = Math.min(this.spinMillis, spinMillis + 1);
     }
     while (true);
   }
@@ -227,6 +233,7 @@ public class CircularBuffer<T> implements UnsafeBlockingQueue<T>
   public T poll(long timeout, TimeUnit unit) throws InterruptedException
   {
     long millis = unit.toMillis(timeout);
+    int spinMillis = 0;
     do {
       if (head > tail) {
         int pos = (int)(tail & buffermask);
@@ -237,6 +244,7 @@ public class CircularBuffer<T> implements UnsafeBlockingQueue<T>
       }
 
       Thread.sleep(spinMillis);
+      spinMillis = Math.min(this.spinMillis, spinMillis + 1);
     }
     while ((millis -= spinMillis) >= 0);
 
