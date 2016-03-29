@@ -16,6 +16,7 @@
 package com.datatorrent.netlet;
 
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import static java.lang.Thread.sleep;
@@ -42,6 +43,16 @@ public class ServerTest
     public String toString()
     {
       return "ServerImpl{" + '}';
+    }
+
+    @Override
+    public void registered(SelectionKey key)
+    {
+      super.registered(key);
+      logger.debug("Bound to address {}", getServerAddress());
+      synchronized (this) {
+        this.notify();
+      }
     }
 
   }

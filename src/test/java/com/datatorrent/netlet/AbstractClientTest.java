@@ -127,16 +127,25 @@ public class AbstractClientTest
   {
   }
 
-  @SuppressWarnings("SleepWhileInLoop")
-  private void verifySendReceive(final DefaultEventLoop el, final int port) throws IOException, InterruptedException
+  @SuppressWarnings( {"SleepWhileInLoop", "AssertEqualsBetweenInconvertibleTypes"})
+  private void verifySendReceive(final DefaultEventLoop el) throws IOException, InterruptedException
   {
     ServerImpl si = new ServerImpl();
     ClientImpl ci = new ClientImpl();
 
     new Thread(el).start();
 
-    el.start("localhost", port, si);
-    el.connect(new InetSocketAddress("localhost", port), ci);
+    el.start(new InetSocketAddress("localhost", 0), si);
+
+    SocketAddress address;
+    synchronized (si) {
+      if ((address = si.getServerAddress()) == null) {
+        si.wait();
+        address = si.getServerAddress();
+      }
+    }
+
+    el.connect((InetSocketAddress)address, ci);
 
     ByteBuffer outboundBuffer = ByteBuffer.allocate(ClientImpl.BUFFER_CAPACITY);
     LongBuffer lb = outboundBuffer.asLongBuffer();
@@ -170,16 +179,17 @@ public class AbstractClientTest
   @Test
   public void testWithDefault() throws IOException, InterruptedException
   {
-    verifySendReceive(new DefaultEventLoop("test"), 5033);
+    verifySendReceive(new DefaultEventLoop("test"));
   }
 
   @Test
   public void testWithOptimized() throws IOException, InterruptedException
   {
-    verifySendReceive(new OptimizedEventLoop("test"), 5034);
+    verifySendReceive(new OptimizedEventLoop("test"));
   }
 
   @Test
+  @SuppressWarnings("AssertEqualsBetweenInconvertibleTypes")
   public void testCreateEventLoop() throws IOException
   {
     Assert.assertEquals(OptimizedEventLoop.class, DefaultEventLoop.createEventLoop("test").getClass());

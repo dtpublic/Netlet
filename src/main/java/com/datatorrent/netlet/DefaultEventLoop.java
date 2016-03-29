@@ -583,7 +583,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
   }
 
   @Override
-  public final void start(final String host, final int port, final ServerListener l)
+  public final void start(final InetSocketAddress address, final ServerListener l)
   {
     submit(new Runnable()
     {
@@ -594,7 +594,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
         try {
           channel = ServerSocketChannel.open();
           channel.configureBlocking(false);
-          channel.socket().bind(host == null ? new InetSocketAddress(port) : new InetSocketAddress(host, port), 128);
+          channel.socket().bind(address, 128);
           register(channel, SelectionKey.OP_ACCEPT, l);
         }
         catch (IOException io) {
@@ -613,7 +613,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
       @Override
       public String toString()
       {
-        return String.format("start(%s, %d, %s)", host, port, l);
+        return String.format("start(%s, %s)", address, l);
       }
 
     });

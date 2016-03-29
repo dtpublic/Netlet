@@ -21,7 +21,7 @@ import com.datatorrent.netlet.Listener.ClientListener;
 import com.datatorrent.netlet.Listener.ServerListener;
 
 /**
- * <p>EventLoop interface.</p>
+ * EventLoop interface.
  *
  * @since 1.0.0
  */
@@ -31,16 +31,10 @@ public interface EventLoop
 
   void disconnect(final ClientListener l);
 
-  //void register(ServerSocketChannel channel, Listener l);
-
-  //void register(SocketChannel channel, int ops, Listener l);
-
-  void start(final String host, final int port, final ServerListener l);
+  void start(final InetSocketAddress address, final ServerListener l);
 
   void stop(final ServerListener l);
 
   void submit(Runnable r);
-
-  //void unregister(final SelectableChannel c);
 
 }
