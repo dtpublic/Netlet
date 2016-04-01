@@ -17,6 +17,7 @@ package com.datatorrent.netlet;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.nio.channels.Channel;
 import java.nio.channels.SelectionKey;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
@@ -161,17 +162,16 @@ public class OptimizedEventLoop extends DefaultEventLoop
   private void runEventLoop(SelectedSelectionKeySet keys)
   {
     while (alive) {
-          int size = tasks.size();
+      int size = tasks.size();
       try {
         if (size > 0) {
           while (alive && size > 0) {
             Runnable task = tasks.pollUnsafe();
             try {
               task.run();
-            }
-            catch (Exception e) {
-              logger.error("Unexpected exception in task {}", task);
-              throw new RuntimeException(e);
+            } catch (RuntimeException e) {
+              logger.error("Unexpected exception in task {}. Terminating {}.", task, this, e);
+              disconnectAllKeysAndShutdown();
             }
             size--;
           }
@@ -179,15 +179,47 @@ public class OptimizedEventLoop extends DefaultEventLoop
             continue;
           }
         } else if (selector.select() == 0) {
-              continue;
-            }
-      } catch (IOException e) {
-        logger.error("Unexpected exception in selector {}", selector, e);
-        throw new RuntimeException(e);
-          }
-      keys.forEach(this);
+          continue;
         }
-    //logger.debug("Terminated {}", this);
+      } catch (IOException e) {
+        logger.error("Unexpected exception in selector {}. Terminating {}.", selector, this, e);
+        disconnectAllKeysAndShutdown();
+      }
+      keys.forEach(this);
+    }
+  }
+
+  /*
+   * TODO: move disconnectAllKeysAndShutdown() to DefaultEventLoop and make it protected.
+   * Can't do this in the patch release without breaking semantic version.
+   */
+  private void disconnectAllKeysAndShutdown()
+  {
+    for (SelectionKey selectionKey : selector.keys()) {
+      if (selectionKey.isValid()) {
+        Channel channel = selectionKey.channel();
+        if (channel != null && channel.isOpen()) {
+          Listener l = (Listener)selectionKey.attachment();
+          try {
+            selectionKey.channel().close();
+            if (l != null) {
+              if (l instanceof Listener.ClientListener) {
+                ((Listener.ClientListener)l).disconnected();
+              }
+              l.unregistered(selectionKey);
+            }
+          } catch (IOException e) {
+            if (l != null) {
+              l.handleException(e, this);
+            } else {
+              logger.warn("Exception while closing channel {} on unregistered key {}", channel, selectionKey, e);
+            }
+          }
+        }
+      }
+    }
+    alive = false;
+    selector.wakeup();
   }
 
   private static final Logger logger = LoggerFactory.getLogger(OptimizedEventLoop.class);

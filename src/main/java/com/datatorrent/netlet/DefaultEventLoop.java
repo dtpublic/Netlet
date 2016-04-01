@@ -28,6 +28,8 @@ import com.datatorrent.netlet.Listener.ClientListener;
 import com.datatorrent.netlet.Listener.ServerListener;
 import com.datatorrent.netlet.util.CircularBuffer;
 
+import static java.lang.Thread.sleep;
+
 /**
  * <p>
  * DefaultEventLoop class.</p>
@@ -37,6 +39,8 @@ import com.datatorrent.netlet.util.CircularBuffer;
 public class DefaultEventLoop implements Runnable, EventLoop
 {
   public static final String eventLoopPropertyName = "com.datatorrent.netlet.disableOptimizedEventLoop";
+  private static final int SLEEP_MILLIS = 5;
+
   public static DefaultEventLoop createEventLoop(final String id) throws IOException
   {
     final String disableOptimizedEventLoop = System.getProperty(eventLoopPropertyName);
@@ -64,7 +68,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
   @Deprecated
   public DefaultEventLoop(String id) throws IOException
   {
-    this.tasks = new CircularBuffer<Runnable>(1024, 5);
+    this.tasks = new CircularBuffer<Runnable>(1024, SLEEP_MILLIS);
     this.id = id;
     selector = Selector.open();
   }
@@ -72,7 +76,16 @@ public class DefaultEventLoop implements Runnable, EventLoop
   public synchronized Thread start()
   {
     if (++refCount == 1) {
-      (eventThread = new Thread(this, id)).start();
+      eventThread = new Thread(this, id);
+      eventThread.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler()
+      {
+        @Override
+        public void uncaughtException(Thread t, Throwable e)
+        {
+          logger.error("Exception in thread {}", t, e);
+        }
+      });
+      eventThread.start();
     }
     return eventThread;
   }
@@ -86,6 +99,30 @@ public class DefaultEventLoop implements Runnable, EventLoop
       {
         synchronized (DefaultEventLoop.this) {
           if (--refCount == 0) {
+            // TODO: replace below implementation with disconnectAllKeysAndShutdown()
+            for (SelectionKey selectionKey : selector.keys()) {
+              if (selectionKey.isValid()) {
+                Channel channel = selectionKey.channel();
+                if (channel != null && channel.isOpen()) {
+                  Listener l = (Listener)selectionKey.attachment();
+                  try {
+                    selectionKey.channel().close();
+                    if (l != null) {
+                      if (l instanceof ClientListener) {
+                        ((ClientListener)l).disconnected();
+                      }
+                      l.unregistered(selectionKey);
+                    }
+                  } catch (IOException e) {
+                    if (l != null) {
+                      l.handleException(e, DefaultEventLoop.this);
+                    } else {
+                      logger.warn("Exception while closing channel {} on unregistered key {}", channel, selectionKey, e);
+                    }
+                  }
+                }
+              }
+            }
             alive = false;
             selector.wakeup();
           }
@@ -344,6 +381,31 @@ public class DefaultEventLoop implements Runnable, EventLoop
 
   }
 
+  private void handleFullTasksCircularBuffer(Runnable r, int sleepMillis)
+  {
+    final Thread currentThread = Thread.currentThread();
+    if (eventThread == currentThread) {
+      int size = tasks.size();
+      if (size == tasks.capacity()) {
+        while (size > 0) {
+          tasks.pollUnsafe().run();
+          size--;
+        }
+      } else {
+        logger.error("Failed to add Runnable {} to tasks {} and size {} is not equal to capacity {}.", r,
+            tasks, size, tasks.capacity());
+        throw new IllegalStateException("size " + size + " should be equal to capacity " + tasks.capacity());
+      }
+    } else {
+      selector.wakeup();
+      try {
+        sleep(sleepMillis);
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      }
+    }
+  }
+
   @Override
   public void submit(Runnable r)
   {
@@ -353,9 +415,16 @@ public class DefaultEventLoop implements Runnable, EventLoop
       r.run();
     }
     else {
-      synchronized (tasks) {
-        tasks.add(r);
-        selector.wakeup();
+      int sleepMillis = 0;
+      while (true) {
+        synchronized (tasks) {
+          if (tasks.offer(r)) {
+            selector.wakeup();
+            return;
+          }
+        }
+        handleFullTasksCircularBuffer(r, sleepMillis);
+        sleepMillis = Math.min(SLEEP_MILLIS, sleepMillis + 1);
       }
     }
   }
@@ -566,6 +635,9 @@ public class DefaultEventLoop implements Runnable, EventLoop
                 }
                 catch (IOException io) {
                   l.handleException(io, DefaultEventLoop.this);
+                }
+                if (!key.channel().isOpen()) {
+                  l.disconnected();
                 }
               }
             }
