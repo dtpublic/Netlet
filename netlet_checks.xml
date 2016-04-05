@@ -31,7 +31,7 @@
   </module>
 
   <module name="RegexpMultiline">
-    <property name="format" value="System\.(out)|(err)\.print(ln)?\("/>
+    <property name="format" value="System\.(out|err)\.print(ln)?\("/>
   </module>
 
   <module name="TreeWalker">
@@ -97,6 +97,7 @@
 
     <module name="LineLength">
       <property name="max" value="120"/>
+      <property name="severity" value="warning"/>
     </module>
 
     <module name="OneStatementPerLine"/>
@@ -148,12 +149,12 @@
 
     <module name="AnnotationLocation">
       <property name="allowSamelineMultipleAnnotations" value="false"/>
-      <property name="allowSamelineSingleParameterlessAnnotation" value="true"/>
+      <property name="allowSamelineSingleParameterlessAnnotation" value="false"/>
       <property name="allowSamelineParameterizedAnnotation" value="false"/>
     </module>
 
     <module name="ImportOrder">
-      <property name="groups" value="/^javax?\./,org,/org\.apache/,com,/com\.datatorrent/,*"/>
+      <property name="groups" value="/^javax?\./,org,/org\.apache/,io,com,/com\.datatorrent/,*"/>
       <property name="ordered" value="true"/>
       <property name="option" value="bottom"/>
       <property name="sortStaticImportsAlphabetically" value="true"/>
