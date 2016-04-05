@@ -69,6 +69,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <checkstyle.console>false</checkstyle.console>
+    <semver.skip>false</semver.skip>
     <benchmark.count>1000000</benchmark.count>
     <benchmark.size>256</benchmark.size>
     <benchmark.host>localhost</benchmark.host>
@@ -158,7 +159,7 @@
       <plugin>
         <groupId>com.github.siom79.japicmp</groupId>
         <artifactId>japicmp-maven-plugin</artifactId>
-        <version>0.6.2</version>
+        <version>0.7.2</version>
         <configuration>
           <oldVersion>
             <dependency>
@@ -174,34 +175,13 @@
           </newVersion>
           <parameter>
             <onlyModified>true</onlyModified>
-            <!-- includes>
-              <include>package.to.include</include>
-              <include>package.ClassToInclude</include>
-              <include>package.Class#methodToInclude(long,int)</include>
-              <include>package.Class#fieldToInclude</include>
-            </includes>
-            <excludes>
-              <exclude>package.to.exclude</exclude>
-              <exclude>package.ClassToExclude</exclude>
-              <exclude>package.Class#methodToExclude(long,int)</exclude>
-              <exclude>package.Class#fieldToExclude</exclude>
-            </excludes -->
             <accessModifier>protected</accessModifier>
-            <breakBuildOnModifications>true</breakBuildOnModifications>
-            <breakBuildOnBinaryIncompatibleModifications>true</breakBuildOnBinaryIncompatibleModifications>
+            <breakBuildBasedOnSemanticVersioning>true</breakBuildBasedOnSemanticVersioning>
             <onlyBinaryIncompatible>false</onlyBinaryIncompatible>
             <includeSynthetic>false</includeSynthetic>
             <ignoreMissingClasses>false</ignoreMissingClasses>
-            <!-- skip>false</skip -->
           </parameter>
-          <!-- dependencies>
-            <dependency>
-              <groupId>org.apache.commons</groupId>
-              <artifactId>commons-math3</artifactId>
-              <version>3.4</version>
-            </dependency>
-          </dependencies -->
-          <skip>false</skip>
+          <skip>${semver.skip}</skip>
         </configuration>
         <executions>
           <execution>
