@@ -19,25 +19,33 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
-import java.net.SocketOption;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.nio.channels.UnresolvedAddressException;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 
-import static java.lang.Thread.sleep;
-
-import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.netty.util.ThreadDeathWatcher;
+
 import com.datatorrent.netlet.ServerTest.ServerImpl;
 import com.datatorrent.netlet.util.CircularBuffer;
 import com.datatorrent.netlet.util.Slice;
+
+import static java.lang.Thread.sleep;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class AbstractClientTest
 {
@@ -79,7 +87,7 @@ public class AbstractClientTest
         int i = 0;
         LongBuffer lb = buffer.asLongBuffer();
         while (lb.hasRemaining()) {
-          Assert.assertEquals(i++, lb.get());
+          assertEquals(i++, lb.get());
         }
 
         assert (i == BUFFER_CAPACITY / 8);
@@ -163,7 +171,7 @@ public class AbstractClientTest
     el.disconnect(ci);
     el.stop(si);
     el.stop();
-    Assert.assertTrue(ci.read);
+    assertTrue(ci.read);
   }
 
   @SuppressWarnings("deprecation")
@@ -182,17 +190,17 @@ public class AbstractClientTest
   @Test
   public void testCreateEventLoop() throws IOException
   {
-    Assert.assertEquals(OptimizedEventLoop.class, DefaultEventLoop.createEventLoop("test").getClass());
+    assertEquals(OptimizedEventLoop.class, DefaultEventLoop.createEventLoop("test").getClass());
     System.setProperty(DefaultEventLoop.eventLoopPropertyName, "");
-    Assert.assertEquals(DefaultEventLoop.class, DefaultEventLoop.createEventLoop("test").getClass());
+    assertEquals(DefaultEventLoop.class, DefaultEventLoop.createEventLoop("test").getClass());
     System.setProperty(DefaultEventLoop.eventLoopPropertyName, "false");
-    Assert.assertEquals(OptimizedEventLoop.class, DefaultEventLoop.createEventLoop("test").getClass());
+    assertEquals(OptimizedEventLoop.class, DefaultEventLoop.createEventLoop("test").getClass());
     System.setProperty(DefaultEventLoop.eventLoopPropertyName, "true");
-    Assert.assertEquals(DefaultEventLoop.class, DefaultEventLoop.createEventLoop("test").getClass());
+    assertEquals(DefaultEventLoop.class, DefaultEventLoop.createEventLoop("test").getClass());
     System.setProperty(DefaultEventLoop.eventLoopPropertyName, "no");
-    Assert.assertEquals(OptimizedEventLoop.class, DefaultEventLoop.createEventLoop("test").getClass());
+    assertEquals(OptimizedEventLoop.class, DefaultEventLoop.createEventLoop("test").getClass());
     System.setProperty(DefaultEventLoop.eventLoopPropertyName, "yes");
-    Assert.assertEquals(DefaultEventLoop.class, DefaultEventLoop.createEventLoop("test").getClass());
+    assertEquals(DefaultEventLoop.class, DefaultEventLoop.createEventLoop("test").getClass());
     System.clearProperty(DefaultEventLoop.eventLoopPropertyName);
   }
 
@@ -206,6 +214,7 @@ public class AbstractClientTest
     {
       private int interestOps;
 
+      @SuppressWarnings("Since15")
       SocketChannel channel = new SocketChannel(null)
       {
         @Override
@@ -215,7 +224,7 @@ public class AbstractClientTest
         }
 
         @Override
-        public <T> SocketChannel setOption(SocketOption<T> name, T value) throws IOException
+        public <T> SocketChannel setOption(java.net.SocketOption<T> name, T value) throws IOException
         {
           return null;
         }
@@ -313,20 +322,21 @@ public class AbstractClientTest
         }
 
         @Override
-        public <T> T getOption(SocketOption<T> name) throws IOException
+        public <T> T getOption(java.net.SocketOption<T> name) throws IOException
         {
           return null;
         }
 
         @Override
-        public Set<SocketOption<?>> supportedOptions()
+        public Set<java.net.SocketOption<?>> supportedOptions()
         {
           return null;
         }
       };
 
       @Override
-      public SelectableChannel channel() {
+      public SelectableChannel channel()
+      {
         return channel;
       }
 
@@ -357,8 +367,7 @@ public class AbstractClientTest
       @Override
       public SelectionKey interestOps(int ops)
       {
-        if ((ops & ~OP_WRITE) != 0)
-        {
+        if ((ops & ~OP_WRITE) != 0) {
           throw new IllegalArgumentException();
         }
         interestOps = ops;
@@ -386,7 +395,7 @@ public class AbstractClientTest
     public Slice pollUnsafe()
     {
       Slice f = super.pollUnsafe();
-      Assert.assertTrue("Unexpected slice length: " + f.length, f.length > 0);
+      assertTrue("Unexpected slice length: " + f.length, f.length > 0);
       return f;
     }
 
@@ -394,10 +403,115 @@ public class AbstractClientTest
     public Slice peekUnsafe()
     {
       Slice f = super.peekUnsafe();
-      Assert.assertTrue("Unexpected slice length: " + f.length, f.length > 0);
+      assertTrue("Unexpected slice length: " + f.length, f.length > 0);
       return f;
     }
 
+  }
+
+  static void verifyUnresolvedException(final AbstractClient client, final DefaultEventLoop eventLoop,
+      final CountDownLatch handled) throws IOException, InterruptedException
+  {
+    final Thread thread = watchForDefaultEventLoopThread(eventLoop.start(), handled);
+
+    eventLoop.connect(new InetSocketAddress("not a valid host name", 5035), client);
+    handled.await();
+
+    NetletThrowable netletThrowable = client.throwables.poll();
+    assertFalse("Client is connected to invalid address", client.isConnected());
+    assertTrue("Default event loop thread is not alive", thread.isAlive());
+    assertNotNull(netletThrowable);
+    eventLoop.stop();
+  }
+
+  @Test
+  public void testUnresolvedException() throws IOException, InterruptedException
+  {
+    final DefaultEventLoop eventLoop = DefaultEventLoop.createEventLoop("test");
+    final CountDownLatch handled = new CountDownLatch(1);
+    final ClientImpl client = new ClientImpl()
+    {
+      @Override
+      public void handleException(Exception cce, EventLoop el)
+      {
+        assertSame(el, eventLoop);
+        assertTrue(cce instanceof RuntimeException);
+        assertTrue(cce.getCause() instanceof UnresolvedAddressException);
+        super.handleException(cce, el);
+        handled.countDown();
+      }
+    };
+    verifyUnresolvedException(client, eventLoop, handled);
+  }
+
+  static void verifyExceptionsInClientCallback(final AbstractClient client, final DefaultEventLoop eventLoop,
+      final CountDownLatch handled) throws IOException, InterruptedException
+  {
+    final Thread thread = watchForDefaultEventLoopThread(eventLoop.start(), handled);
+
+    final CountDownLatch registered = new CountDownLatch(1);
+    ServerImpl server = new ServerImpl()
+    {
+      @Override
+      public void registered(SelectionKey key)
+      {
+        super.registered(key);
+        registered.countDown();
+      }
+    };
+    eventLoop.start("localhost", 0, server);
+    registered.await();
+
+    eventLoop.connect((InetSocketAddress)server.boundAddress, client);
+    try {
+      client.send("test".getBytes());
+      handled.await();
+      assertTrue("Default event loop thread is not alive", thread.isAlive());
+      fail("No exception was thrown");
+    } catch (Exception e) {
+      assertTrue(e instanceof NetletThrowable.NetletRuntimeException);
+    }
+  }
+
+  @Test
+  public void testExceptionsInClientCallback() throws IOException, InterruptedException
+  {
+    final DefaultEventLoop eventLoop = DefaultEventLoop.createEventLoop("test");
+    final CountDownLatch handled = new CountDownLatch(1);
+
+    ClientImpl client = new ClientImpl()
+    {
+      RuntimeException exception;
+      @Override
+      public void connected()
+      {
+        exception = new RuntimeException();
+        throw exception;
+      }
+
+      @Override
+      public void handleException(Exception cce, EventLoop el)
+      {
+        assertSame(exception, cce);
+        assertSame(eventLoop, el);
+        super.handleException(cce, el);
+        handled.countDown();
+      }
+    };
+    verifyExceptionsInClientCallback(client, eventLoop, handled);
+  }
+
+  private static Thread watchForDefaultEventLoopThread(final Thread thread, final CountDownLatch latch)
+  {
+    ThreadDeathWatcher.watch(thread, new Runnable()
+    {
+      @Override
+      public void run()
+      {
+        latch.countDown();
+      }
+    });
+    return thread;
   }
 
   private static final Logger logger = LoggerFactory.getLogger(AbstractClientTest.class);

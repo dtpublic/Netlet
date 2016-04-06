@@ -383,8 +383,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
 
   private void handleFullTasksCircularBuffer(Runnable r, int sleepMillis)
   {
-    final Thread currentThread = Thread.currentThread();
-    if (eventThread == currentThread) {
+    if (eventThread == Thread.currentThread()) {
       int size = tasks.size();
       if (size == tasks.capacity()) {
         while (size > 0) {

@@ -22,10 +22,8 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -35,6 +33,7 @@ import org.slf4j.LoggerFactory;
 import static java.lang.Thread.sleep;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -46,11 +45,21 @@ public class DefaultEventLoopTest
   private Thread thread;
   private AtomicInteger count;
 
-  private static class DefaultEventLoopCLient extends AbstractClient
+  private static class DefaultEventLoopClient extends AbstractClient
   {
     private final ByteBuffer buffer = ByteBuffer.allocate(1024);
     public volatile boolean isConnected;
     public volatile boolean isRegistered;
+    private final CountDownLatch connected;
+    private final CountDownLatch registered;
+    private final CountDownLatch disconnected;
+
+    public DefaultEventLoopClient(CountDownLatch connected, CountDownLatch registered, CountDownLatch disconnected)
+    {
+      this.connected = connected;
+      this.registered = registered;
+      this.disconnected = disconnected;
+    }
 
     @Override
     public ByteBuffer buffer()
@@ -68,6 +77,9 @@ public class DefaultEventLoopTest
     {
       super.connected();
       isConnected = true;
+      if (connected != null) {
+        connected.countDown();
+      }
     }
 
     @Override
@@ -75,6 +87,9 @@ public class DefaultEventLoopTest
     {
       super.disconnected();
       isConnected = false;
+      if (disconnected != null) {
+        disconnected.countDown();
+      }
     }
 
     @Override
@@ -82,12 +97,19 @@ public class DefaultEventLoopTest
     {
       super.registered(key);
       isRegistered = true;
+      if (registered != null) {
+        registered.countDown();
+      }
     }
 
     @Override
     public void unregistered(SelectionKey key)
     {
       super.unregistered(key);
+      assertSame(this.key, key);
+      if (key.isValid()) {
+        key.interestOps(key.interestOps() & ~SelectionKey.OP_WRITE);
+      }
       isRegistered = false;
     }
   }
@@ -184,31 +206,19 @@ public class DefaultEventLoopTest
   @Test
   public void testStop() throws InterruptedException
   {
-    final Lock lock = new ReentrantLock();
-    final Condition connected = lock.newCondition();
-    final Condition registered = lock.newCondition();
-    final ArrayList<DefaultEventLoopCLient> clientConnections = new ArrayList<DefaultEventLoopCLient>();
+    final CountDownLatch connected = new CountDownLatch(2);
+    final CountDownLatch registered = new CountDownLatch(1);
+    final ArrayList<DefaultEventLoopClient> clientConnections = new ArrayList<DefaultEventLoopClient>();
 
-    DefaultEventLoopCLient client = new DefaultEventLoopCLient()
-    {
-      @Override
-      public void connected()
-      {
-        super.connected();
-        lock.lock();
-        connected.signal();
-        isConnected = true;
-        lock.unlock();
-      }
-
-    };
+    DefaultEventLoopClient client = new DefaultEventLoopClient(connected, null, null);
 
     AbstractServer server = new AbstractServer()
     {
       @Override
       public ClientListener getClientConnection(SocketChannel channel, ServerSocketChannel server)
       {
-        DefaultEventLoopCLient client =  new DefaultEventLoopCLient();
+        DefaultEventLoopClient client = new DefaultEventLoopClient(null, connected, null);
+        client.isConnected = true;
         clientConnections.add(client);
         return client;
       }
@@ -217,119 +227,73 @@ public class DefaultEventLoopTest
       public void registered(SelectionKey key)
       {
         super.registered(key);
-        lock.lock();
-        registered.signal();
-        lock.unlock();
+        registered.countDown();
       }
     };
 
     defaultEventLoop.start("localhost", 0, server);
-    lock.lock();
-    registered.awaitUninterruptibly();
-    lock.unlock();
+    registered.await();
     defaultEventLoop.connect((InetSocketAddress)server.boundAddress, client);
-    lock.lock();
-    connected.awaitUninterruptibly();
-    lock.unlock();
+    connected.await();
 
     assertTrue(client.isRegistered);
     assertTrue(client.isConnected);
     assertTrue(client.isConnected());
 
+    for (DefaultEventLoopClient clientConnection : clientConnections) {
+      assertTrue(clientConnection.isConnected());
+      assertTrue(clientConnection.isConnected);
+    }
+
     defaultEventLoop.stop();
     thread.join();
+
     assertFalse(client.isRegistered);
     assertFalse(client.isConnected);
     assertFalse(client.isConnected());
-    assertFalse(client.key.isValid());
-    assertFalse(client.key.channel().isOpen());
-    for (DefaultEventLoopCLient  clientConnection : clientConnections) {
+
+    for (DefaultEventLoopClient clientConnection : clientConnections) {
       assertFalse(clientConnection.isRegistered);
       assertFalse(clientConnection.isConnected);
       assertFalse(clientConnection.isConnected());
-      assertFalse(clientConnection.key.isValid());
-      assertFalse(clientConnection.key.channel().isOpen());
     }
   }
 
   @Test
   public void testStopWithDisconnectedClient() throws InterruptedException
   {
-    final Lock lock = new ReentrantLock();
-    final Condition connected = lock.newCondition();
-    final Condition disconnected = lock.newCondition();
-    final Condition registered = lock.newCondition();
+    final CountDownLatch connected = new CountDownLatch(2);
+    final CountDownLatch disconnected = new CountDownLatch(1);
+    final CountDownLatch registered = new CountDownLatch(1);
 
-    DefaultEventLoopCLient client1 = new DefaultEventLoopCLient()
-    {
-      @Override
-      public void connected()
-      {
-        super.connected();
-        lock.lock();
-        connected.signal();
-        lock.unlock();
-      }
-
-      @Override
-      public void disconnected()
-      {
-        super.disconnected();
-        lock.lock();
-        disconnected.signal();
-        lock.unlock();
-      }
-    };
-
-    DefaultEventLoopCLient client2 = new DefaultEventLoopCLient()
-    {
-      @Override
-      public void connected()
-      {
-        super.connected();
-        lock.lock();
-        connected.signal();
-        lock.unlock();
-      }
-    };
+    DefaultEventLoopClient client1 = new DefaultEventLoopClient(connected, null, disconnected);
+    DefaultEventLoopClient client2 = new DefaultEventLoopClient(connected, null, null);
 
     AbstractServer server = new AbstractServer()
     {
       @Override
       public ClientListener getClientConnection(SocketChannel client, ServerSocketChannel server)
       {
-        return new DefaultEventLoopCLient();
+        return new DefaultEventLoopClient(null, connected, null);
       }
 
       @Override
       public void registered(SelectionKey key)
       {
         super.registered(key);
-        lock.lock();
-        registered.signal();
-        lock.unlock();
+        registered.countDown();
       }
     };
 
     defaultEventLoop.start("localhost", 0, server);
-    lock.lock();
-    registered.awaitUninterruptibly();
-    lock.unlock();
+    registered.await();
     defaultEventLoop.connect((InetSocketAddress)server.boundAddress, client1);
-    lock.lock();
-    connected.awaitUninterruptibly();
-    lock.unlock();
     defaultEventLoop.connect((InetSocketAddress)server.boundAddress, client2);
-    lock.lock();
-    connected.awaitUninterruptibly();
-    lock.unlock();
+    connected.await();
     defaultEventLoop.disconnect(client1);
-    lock.lock();
-    disconnected.awaitUninterruptibly();
-    lock.unlock();
-    assertFalse(client1.isConnected());
-    assertFalse(client1.key.isValid());
+    disconnected.await();
 
+    assertFalse(client1.isConnected());
 
     defaultEventLoop.stop();
     thread.join();
