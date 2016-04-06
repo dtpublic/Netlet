@@ -17,7 +17,9 @@ package com.datatorrent.netlet;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 
 import org.slf4j.Logger;
@@ -38,6 +40,50 @@ public abstract class AbstractClient implements ClientListener
 {
   private static final int THROWABLES_COLLECTION_SIZE = 4;
   public static final int MAX_SENDBUFFER_SIZE;
+  private static final SelectionKey invalidSelectionKey = new SelectionKey()
+  {
+    @Override
+    public SelectableChannel channel()
+    {
+      return null;
+    }
+
+    @Override
+    public Selector selector()
+    {
+      return null;
+    }
+
+    @Override
+    public boolean isValid()
+    {
+      return false;
+    }
+
+    @Override
+    public void cancel()
+    {
+
+    }
+
+    @Override
+    public int interestOps()
+    {
+      return 0;
+    }
+
+    @Override
+    public SelectionKey interestOps(int ops)
+    {
+      return this;
+    }
+
+    @Override
+    public int readyOps()
+    {
+      return 0;
+    }
+  };
 
   protected final CircularBuffer<NetletThrowable> throwables;
   protected final CircularBuffer<CircularBuffer<Slice>> bufferOfBuffers;
@@ -45,7 +91,11 @@ public abstract class AbstractClient implements ClientListener
   protected CircularBuffer<Slice> sendBuffer4Offers, sendBuffer4Polls;
   protected final ByteBuffer writeBuffer;
   protected boolean write = true;
-  protected SelectionKey key;
+  /*
+   * access to the key is not thread safe. It is read/write on the default event loop and read only on other threads,
+   * so other threads may get stale value.
+   */
+  protected SelectionKey key = invalidSelectionKey;
 
   public boolean isConnected()
   {
@@ -417,5 +467,4 @@ public abstract class AbstractClient implements ClientListener
     }
     MAX_SENDBUFFER_SIZE = size;
   }
-
 }
