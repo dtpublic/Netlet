@@ -282,8 +282,13 @@ public class DefaultEventLoop implements Runnable, EventLoop
           if (!iterator.hasNext()) {
             int size = tasks.size();
             if (size > 0) {
+              Runnable task;
               do {
-                tasks.pollUnsafe().run();
+                task = tasks.poll();
+                if (task == null) {
+                  break;
+                }
+                task.run();
               }
               while (--size > 0);
               size = selector.selectNow();
@@ -381,20 +386,12 @@ public class DefaultEventLoop implements Runnable, EventLoop
 
   }
 
-  private void handleFullTasksCircularBuffer(Runnable r, int sleepMillis)
+  private void handleFullTasksCircularBuffer(int sleepMillis)
   {
-    final Thread currentThread = Thread.currentThread();
-    if (eventThread == currentThread) {
-      int size = tasks.size();
-      if (size == tasks.capacity()) {
-        while (size > 0) {
-          tasks.pollUnsafe().run();
-          size--;
-        }
-      } else {
-        logger.error("Failed to add Runnable {} to tasks {} and size {} is not equal to capacity {}.", r,
-            tasks, size, tasks.capacity());
-        throw new IllegalStateException("size " + size + " should be equal to capacity " + tasks.capacity());
+    if (eventThread == Thread.currentThread()) {
+      Runnable task;
+      while ((task = tasks.poll()) != null) {
+        task.run();
       }
     } else {
       selector.wakeup();
@@ -411,7 +408,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
   {
     Thread currentThread = Thread.currentThread();
     //logger.debug("{}.{}.{}", currentThread, r, eventThread);
-    if (tasks.isEmpty() && eventThread == currentThread) {
+    if (eventThread == currentThread && tasks.isEmpty()) {
       r.run();
     }
     else {
@@ -423,7 +420,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
             return;
           }
         }
-        handleFullTasksCircularBuffer(r, sleepMillis);
+        handleFullTasksCircularBuffer(sleepMillis);
         sleepMillis = Math.min(SLEEP_MILLIS, sleepMillis + 1);
       }
     }

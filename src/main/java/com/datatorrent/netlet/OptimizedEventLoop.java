@@ -165,8 +165,12 @@ public class OptimizedEventLoop extends DefaultEventLoop
       int size = tasks.size();
       try {
         if (size > 0) {
+          Runnable task;
           while (alive && size > 0) {
-            Runnable task = tasks.pollUnsafe();
+            task = tasks.poll();
+            if (task == null) {
+              break;
+            }
             try {
               task.run();
             } catch (RuntimeException e) {
