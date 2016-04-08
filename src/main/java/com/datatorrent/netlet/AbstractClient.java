@@ -336,6 +336,10 @@ public abstract class AbstractClient implements ClientListener
 
   public boolean send(byte[] array, int offset, int len)
   {
+    if (!throwables.isEmpty()) {
+      NetletThrowable.Util.throwRuntime(throwables.pollUnsafe());
+    }
+
     Slice f;
     if (freeBuffer.isEmpty()) {
       f = new Slice(array, offset, len);
@@ -387,7 +391,7 @@ public abstract class AbstractClient implements ClientListener
   @Override
   public void handleException(Exception cce, EventLoop el)
   {
-    logger.debug("Collecting exception in {}", throwables.size(), cce);
+    logger.error("Exception in event loop {}", el, cce);
     throwables.offer(NetletThrowable.Util.rewrap(cce, el));
   }
 

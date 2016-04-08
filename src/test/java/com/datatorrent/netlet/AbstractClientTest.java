@@ -25,11 +25,15 @@ import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.nio.channels.UnresolvedAddressException;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.netty.util.ThreadDeathWatcher;
 
 import com.datatorrent.netlet.ServerTest.ServerImpl;
 import com.datatorrent.netlet.util.CircularBuffer;
@@ -38,7 +42,11 @@ import com.datatorrent.netlet.util.Slice;
 import static java.lang.Thread.sleep;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class AbstractClientTest
 {
@@ -400,6 +408,119 @@ public class AbstractClientTest
       return f;
     }
 
+  }
+
+  static void verifyUnresolvedException(final AbstractClient client, final DefaultEventLoop eventLoop,
+      final CountDownLatch handled) throws IOException, InterruptedException
+  {
+    final Thread thread = watchForDefaultEventLoopThread(eventLoop.start(), handled);
+
+    eventLoop.connect(new InetSocketAddress("not a valid host name", 5035), client);
+    handled.await();
+
+    NetletThrowable netletThrowable = client.throwables.poll();
+    assertFalse("Client is connected to invalid address", client.isConnected());
+    assertTrue("Default event loop thread is not alive", thread.isAlive());
+    assertNotNull(netletThrowable);
+    eventLoop.stop();
+  }
+
+  @Test
+  public void testUnresolvedException() throws IOException, InterruptedException
+  {
+    final DefaultEventLoop eventLoop = DefaultEventLoop.createEventLoop("test");
+    final CountDownLatch handled = new CountDownLatch(1);
+    final ClientImpl client = new ClientImpl()
+    {
+      @Override
+      public void handleException(Exception cce, EventLoop el)
+      {
+        assertSame(el, eventLoop);
+        assertTrue(cce instanceof RuntimeException);
+        assertTrue(cce.getCause() instanceof UnresolvedAddressException);
+        super.handleException(cce, el);
+        handled.countDown();
+      }
+    };
+    verifyUnresolvedException(client, eventLoop, handled);
+  }
+
+  static void verifyExceptionsInClientCallback(final AbstractClient client, final DefaultEventLoop eventLoop,
+      final CountDownLatch handled) throws IOException, InterruptedException
+  {
+    final Thread thread = watchForDefaultEventLoopThread(eventLoop.start(), handled);
+
+    final CountDownLatch registered = new CountDownLatch(1);
+    ServerImpl server = new ServerImpl()
+    {
+      @Override
+      public void registered(SelectionKey key)
+      {
+        super.registered(key);
+        registered.countDown();
+      }
+    };
+    eventLoop.start("localhost", 0, server);
+    registered.await();
+
+    eventLoop.connect((InetSocketAddress)server.boundAddress, client);
+    try {
+      client.send("test".getBytes());
+      handled.await();
+      assertTrue("Default event loop thread is not alive", thread.isAlive());
+      // TODO: replace with fail
+      assertNotNull(client.throwables.peek());
+      //fail("No exception was thrown");
+    } catch (Exception e) {
+      assertTrue(e instanceof NetletThrowable.NetletRuntimeException);
+    } finally {
+      if (thread.isAlive()) {
+        eventLoop.stop(server);
+        eventLoop.disconnect(client);
+        eventLoop.stop();
+      }
+    }
+  }
+
+  @Test
+  public void testExceptionsInClientCallback() throws IOException, InterruptedException
+  {
+    final DefaultEventLoop eventLoop = DefaultEventLoop.createEventLoop("test");
+    final CountDownLatch handled = new CountDownLatch(1);
+
+    ClientImpl client = new ClientImpl()
+    {
+      RuntimeException exception;
+      @Override
+      public void connected()
+      {
+        exception = new RuntimeException();
+        throw exception;
+      }
+
+      @Override
+      public void handleException(Exception cce, EventLoop el)
+      {
+        assertSame(exception, cce);
+        assertSame(eventLoop, el);
+        super.handleException(cce, el);
+        handled.countDown();
+      }
+    };
+    verifyExceptionsInClientCallback(client, eventLoop, handled);
+  }
+
+  private static Thread watchForDefaultEventLoopThread(final Thread thread, final CountDownLatch latch)
+  {
+    ThreadDeathWatcher.watch(thread, new Runnable()
+    {
+      @Override
+      public void run()
+      {
+        latch.countDown();
+      }
+    });
+    return thread;
   }
 
   private static final Logger logger = LoggerFactory.getLogger(AbstractClientTest.class);

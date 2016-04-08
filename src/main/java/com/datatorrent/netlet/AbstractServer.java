@@ -36,7 +36,7 @@ public abstract class AbstractServer implements ServerListener
   @Override
   public void registered(SelectionKey key)
   {
-      boundAddress = ((ServerSocketChannel)key.channel()).socket().getLocalSocketAddress();
+    boundAddress = ((ServerSocketChannel)key.channel()).socket().getLocalSocketAddress();
   }
 
   @Override
@@ -47,7 +47,7 @@ public abstract class AbstractServer implements ServerListener
   @Override
   public void handleException(Exception cce, EventLoop el)
   {
-    logger.debug("", cce);
+    logger.error("Exception in event loop {}", el, cce);
   }
 
   public SocketAddress getServerAddress()

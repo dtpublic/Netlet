@@ -21,6 +21,7 @@ import java.net.InetSocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.nio.channels.UnresolvedAddressException;
 import java.util.concurrent.CountDownLatch;
 
 import org.junit.Test;
@@ -31,7 +32,12 @@ import org.slf4j.LoggerFactory;
 import com.datatorrent.netlet.util.CircularBuffer;
 import com.datatorrent.netlet.util.Slice;
 
+import static com.datatorrent.netlet.AbstractClientTest.verifyExceptionsInClientCallback;
+import static com.datatorrent.netlet.AbstractClientTest.verifyUnresolvedException;
+
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class AbstractLengthPrependerClientTest
@@ -183,4 +189,63 @@ public class AbstractLengthPrependerClientTest
     thread.join();
   }
 
+  @Test
+  public void testUnresolvedException() throws IOException, InterruptedException
+  {
+    final DefaultEventLoop eventLoop = DefaultEventLoop.createEventLoop("test");
+    final CountDownLatch handled = new CountDownLatch(1);
+    final AbstractLengthPrependerClient ci = new AbstractLengthPrependerClient()
+    {
+      @Override
+      public void onMessage(byte[] buffer, int offset, int size)
+      {
+        fail();
+      }
+
+      @Override
+      public void handleException(Exception cce, EventLoop el)
+      {
+        assertSame(el, eventLoop);
+        assertTrue(cce instanceof RuntimeException);
+        assertTrue(cce.getCause() instanceof UnresolvedAddressException);
+        super.handleException(cce, el);
+        handled.countDown();
+      }
+    };
+    verifyUnresolvedException(ci, eventLoop, handled);
+  }
+
+  @Test
+  public void testExceptionsInClientCallback() throws IOException, InterruptedException
+  {
+    final DefaultEventLoop eventLoop = DefaultEventLoop.createEventLoop("test");
+    final CountDownLatch handled = new CountDownLatch(1);
+
+    final AbstractLengthPrependerClient client = new AbstractLengthPrependerClient()
+    {
+      RuntimeException exception;
+      @Override
+      public void connected()
+      {
+        exception = new RuntimeException();
+        throw exception;
+      }
+
+      @Override
+      public void handleException(Exception cce, EventLoop el)
+      {
+        assertSame(exception, cce);
+        assertSame(eventLoop, el);
+        super.handleException(cce, el);
+        handled.countDown();
+      }
+
+      @Override
+      public void onMessage(byte[] buffer, int offset, int size)
+      {
+
+      }
+    };
+    verifyExceptionsInClientCallback(client, eventLoop, handled);
+  }
 }

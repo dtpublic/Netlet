@@ -275,19 +275,19 @@ public abstract class AbstractLengthPrependerClient extends AbstractClient
   @Override
   public void handleException(Exception cce, EventLoop el)
   {
-    if (key.attachment() == this) {
+    if (!key.isValid()) {
+      super.handleException(cce, el);
+    } else if (key.attachment() == this) {
       if (cce instanceof IOException) {
-        logger.debug("Disconnecting {} because of an exception.", this, cce);
+        logger.error("Disconnecting {} because of an exception.", this, cce);
         if (isConnected()) {
           el.disconnect(this);
         }
+      } else {
+        super.handleException(cce, el);
       }
-      else {
-        DTThrowable.rethrow(cce);
-      }
-    }
-    else {
-      logger.debug("Ignoring exception received after discarding the connection.", cce);
+    } else {
+      logger.error("Ignoring exception received after discarding the connection.", cce);
     }
   }
 
