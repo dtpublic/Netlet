@@ -19,7 +19,6 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
-import java.net.SocketOption;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 import java.nio.channels.SelectableChannel;
@@ -28,9 +27,6 @@ import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.Set;
 
-import static java.lang.Thread.sleep;
-
-import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +34,11 @@ import org.slf4j.LoggerFactory;
 import com.datatorrent.netlet.ServerTest.ServerImpl;
 import com.datatorrent.netlet.util.CircularBuffer;
 import com.datatorrent.netlet.util.Slice;
+
+import static java.lang.Thread.sleep;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class AbstractClientTest
 {
@@ -79,7 +80,7 @@ public class AbstractClientTest
         int i = 0;
         LongBuffer lb = buffer.asLongBuffer();
         while (lb.hasRemaining()) {
-          Assert.assertEquals(i++, lb.get());
+          assertEquals(i++, lb.get());
         }
 
         assert (i == BUFFER_CAPACITY / 8);
@@ -163,7 +164,7 @@ public class AbstractClientTest
     el.disconnect(ci);
     el.stop(si);
     el.stop();
-    Assert.assertTrue(ci.read);
+    assertTrue(ci.read);
   }
 
   @SuppressWarnings("deprecation")
@@ -182,17 +183,17 @@ public class AbstractClientTest
   @Test
   public void testCreateEventLoop() throws IOException
   {
-    Assert.assertEquals(OptimizedEventLoop.class, DefaultEventLoop.createEventLoop("test").getClass());
+    assertEquals(OptimizedEventLoop.class, DefaultEventLoop.createEventLoop("test").getClass());
     System.setProperty(DefaultEventLoop.eventLoopPropertyName, "");
-    Assert.assertEquals(DefaultEventLoop.class, DefaultEventLoop.createEventLoop("test").getClass());
+    assertEquals(DefaultEventLoop.class, DefaultEventLoop.createEventLoop("test").getClass());
     System.setProperty(DefaultEventLoop.eventLoopPropertyName, "false");
-    Assert.assertEquals(OptimizedEventLoop.class, DefaultEventLoop.createEventLoop("test").getClass());
+    assertEquals(OptimizedEventLoop.class, DefaultEventLoop.createEventLoop("test").getClass());
     System.setProperty(DefaultEventLoop.eventLoopPropertyName, "true");
-    Assert.assertEquals(DefaultEventLoop.class, DefaultEventLoop.createEventLoop("test").getClass());
+    assertEquals(DefaultEventLoop.class, DefaultEventLoop.createEventLoop("test").getClass());
     System.setProperty(DefaultEventLoop.eventLoopPropertyName, "no");
-    Assert.assertEquals(OptimizedEventLoop.class, DefaultEventLoop.createEventLoop("test").getClass());
+    assertEquals(OptimizedEventLoop.class, DefaultEventLoop.createEventLoop("test").getClass());
     System.setProperty(DefaultEventLoop.eventLoopPropertyName, "yes");
-    Assert.assertEquals(DefaultEventLoop.class, DefaultEventLoop.createEventLoop("test").getClass());
+    assertEquals(DefaultEventLoop.class, DefaultEventLoop.createEventLoop("test").getClass());
     System.clearProperty(DefaultEventLoop.eventLoopPropertyName);
   }
 
@@ -206,6 +207,7 @@ public class AbstractClientTest
     {
       private int interestOps;
 
+      @SuppressWarnings("Since15")
       SocketChannel channel = new SocketChannel(null)
       {
         @Override
@@ -215,7 +217,7 @@ public class AbstractClientTest
         }
 
         @Override
-        public <T> SocketChannel setOption(SocketOption<T> name, T value) throws IOException
+        public <T> SocketChannel setOption(java.net.SocketOption<T> name, T value) throws IOException
         {
           return null;
         }
@@ -313,20 +315,21 @@ public class AbstractClientTest
         }
 
         @Override
-        public <T> T getOption(SocketOption<T> name) throws IOException
+        public <T> T getOption(java.net.SocketOption<T> name) throws IOException
         {
           return null;
         }
 
         @Override
-        public Set<SocketOption<?>> supportedOptions()
+        public Set<java.net.SocketOption<?>> supportedOptions()
         {
           return null;
         }
       };
 
       @Override
-      public SelectableChannel channel() {
+      public SelectableChannel channel()
+      {
         return channel;
       }
 
@@ -357,8 +360,7 @@ public class AbstractClientTest
       @Override
       public SelectionKey interestOps(int ops)
       {
-        if ((ops & ~OP_WRITE) != 0)
-        {
+        if ((ops & ~OP_WRITE) != 0) {
           throw new IllegalArgumentException();
         }
         interestOps = ops;
@@ -386,7 +388,7 @@ public class AbstractClientTest
     public Slice pollUnsafe()
     {
       Slice f = super.pollUnsafe();
-      Assert.assertTrue("Unexpected slice length: " + f.length, f.length > 0);
+      assertTrue("Unexpected slice length: " + f.length, f.length > 0);
       return f;
     }
 
@@ -394,7 +396,7 @@ public class AbstractClientTest
     public Slice peekUnsafe()
     {
       Slice f = super.peekUnsafe();
-      Assert.assertTrue("Unexpected slice length: " + f.length, f.length > 0);
+      assertTrue("Unexpected slice length: " + f.length, f.length > 0);
       return f;
     }
 
