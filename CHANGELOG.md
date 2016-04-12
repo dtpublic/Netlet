@@ -1,5 +1,26 @@
 # Change Log
 
+## [1.2.1](https://github.com/DataTorrent/Netlet/tree/v1.2.1) (2016-04-12)
+[Full Changelog](https://github.com/DataTorrent/Netlet/compare/v1.2.0...v1.2.1)
+
+**Fixes**
+
+- Fix to not overflow max elements.
+- Fix for zero length slice left in sendBuffer4Polls queue when writeBuffer remaining capacity is equal to the slice length.
+-	Fix for `NullPointerException` in `AbstractClient.isConnected()`.
+
+**Enhancements**
+
+- Adaptive sleep time.
+- Better handling for the case when tasks circular buffer becomes full.
+- Added handling for unresolvable host names.
+
+**Integration**
+
+- Changed minimum maven version to 3.0.5.
+- Implemented checkstyle plugin to enforce consistent code style.
+- Implemented site report with japicmp, checkstyle and findbugs maven plugins.
+
 ## [1.2.0](https://github.com/DataTorrent/Netlet/tree/v1.2.0) (2015-09-15)
 [Full Changelog](https://github.com/DataTorrent/Netlet/compare/v1.1.0...v1.2.0)
 
