@@ -25,6 +25,17 @@ public class AbstractWriteOnlyLengthPrependerClient extends AbstractWriteOnlyCli
 {
   private boolean newMessage = true;
 
+  public AbstractWriteOnlyLengthPrependerClient(final int sendBufferCapacity)
+  {
+    this(64 * 1024, sendBufferCapacity);
+  }
+
+  public AbstractWriteOnlyLengthPrependerClient(final int writeBufferCapacity, final int sendBufferCapacity)
+  {
+    super(writeBufferCapacity, sendBufferCapacity);
+  }
+
+
   @Override
   public void write() throws IOException
   {
