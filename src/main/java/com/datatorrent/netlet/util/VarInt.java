@@ -15,6 +15,8 @@
  */
 package com.datatorrent.netlet.util;
 
+import java.nio.ByteBuffer;
+
 /**
  * <p>VarInt class.</p>
  *
@@ -57,6 +59,19 @@ public class VarInt
     }
 
     return i;
+  }
+
+  public static void write(int value, ByteBuffer buffer)
+  {
+    while (true) {
+      if ((value & ~0x7F) == 0) {
+        buffer.put((byte)value);
+        return;
+      } else {
+        buffer.put((byte)((value & 0x7F) | 0x80));
+        value >>>= 7;
+      }
+    }
   }
 
   public static int getSize(int value)

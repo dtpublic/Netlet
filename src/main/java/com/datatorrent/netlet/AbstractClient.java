@@ -17,16 +17,13 @@ package com.datatorrent.netlet;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.datatorrent.netlet.util.Slice;
-import com.datatorrent.netlet.Listener.ClientListener;
 import com.datatorrent.netlet.NetletThrowable.NetletRuntimeException;
 import com.datatorrent.netlet.util.CircularBuffer;
 
@@ -36,54 +33,10 @@ import com.datatorrent.netlet.util.CircularBuffer;
  *
  * @since 1.0.0
  */
-public abstract class AbstractClient implements ClientListener
+public abstract class AbstractClient extends AbstractClientListener
 {
   private static final int THROWABLES_COLLECTION_SIZE = 4;
   public static final int MAX_SENDBUFFER_SIZE;
-  private static final SelectionKey invalidSelectionKey = new SelectionKey()
-  {
-    @Override
-    public SelectableChannel channel()
-    {
-      return null;
-    }
-
-    @Override
-    public Selector selector()
-    {
-      return null;
-    }
-
-    @Override
-    public boolean isValid()
-    {
-      return false;
-    }
-
-    @Override
-    public void cancel()
-    {
-
-    }
-
-    @Override
-    public int interestOps()
-    {
-      return 0;
-    }
-
-    @Override
-    public SelectionKey interestOps(int ops)
-    {
-      return this;
-    }
-
-    @Override
-    public int readyOps()
-    {
-      return 0;
-    }
-  };
 
   protected final CircularBuffer<NetletThrowable> throwables;
   protected final CircularBuffer<CircularBuffer<Slice>> bufferOfBuffers;
@@ -91,16 +44,6 @@ public abstract class AbstractClient implements ClientListener
   protected CircularBuffer<Slice> sendBuffer4Offers, sendBuffer4Polls;
   protected final ByteBuffer writeBuffer;
   protected boolean write = true;
-  /*
-   * access to the key is not thread safe. It is read/write on the default event loop and read only on other threads,
-   * so other threads may get stale value.
-   */
-  protected SelectionKey key = invalidSelectionKey;
-
-  public boolean isConnected()
-  {
-    return key.isValid() && ((SocketChannel)key.channel()).isConnected();
-  }
 
   public AbstractClient(int writeBufferSize, int sendBufferSize)
   {
@@ -141,12 +84,6 @@ public abstract class AbstractClient implements ClientListener
   }
 
   @Override
-  public void registered(SelectionKey key)
-  {
-    this.key = key;
-  }
-
-  @Override
   public void connected()
   {
     write = false;
@@ -184,24 +121,19 @@ public abstract class AbstractClient implements ClientListener
   /**
    * @since 1.2.0
    */
+  @Override
   public boolean isReadSuspended()
   {
-    return (key.interestOps() & SelectionKey.OP_READ) == 0;
+    return super.isReadSuspended();
   }
 
   /**
    * @since 1.2.0
    */
+  @Override
   public boolean suspendReadIfResumed()
   {
-    final int interestOps = key.interestOps();
-    if ((interestOps & SelectionKey.OP_READ) == SelectionKey.OP_READ) {
-      logger.debug("Suspending read on key {} with attachment {}", key, key.attachment());
-      key.interestOps(interestOps & ~SelectionKey.OP_READ);
-      return true;
-    } else {
-      return false;
-    }
+    return super.suspendReadIfResumed();
   }
 
   /**
@@ -209,15 +141,7 @@ public abstract class AbstractClient implements ClientListener
    */
   public boolean resumeReadIfSuspended()
   {
-    final int interestOps = key.interestOps();
-    if ((interestOps & SelectionKey.OP_READ) == 0) {
-      logger.debug("Resuming read on key {} with attachment {}", key, key.attachment());
-      key.interestOps(interestOps | SelectionKey.OP_READ);
-      key.selector().wakeup();
-      return true;
-    } else {
-      return false;
-    }
+    return super.resumeReadIfSuspended();
   }
 
   /**
@@ -391,7 +315,7 @@ public abstract class AbstractClient implements ClientListener
   @Override
   public void handleException(Exception cce, EventLoop el)
   {
-    logger.error("Exception in event loop {}", el, cce);
+    super.handleException(cce, el);
     throwables.offer(NetletThrowable.Util.rewrap(cce, el));
   }
 
