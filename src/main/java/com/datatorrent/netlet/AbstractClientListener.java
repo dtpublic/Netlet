@@ -17,6 +17,7 @@ package com.datatorrent.netlet;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -118,7 +119,9 @@ public abstract class AbstractClientListener implements ClientListener
   {
     SocketChannel channel = (SocketChannel)key.channel();
     try {
-      channel.getClass().getDeclaredMethod(read ? "shutdownInput" : "shutdownOutput").invoke(channel);
+      final Method method = channel.getClass().getDeclaredMethod(read ? "shutdownInput" : "shutdownOutput");
+      method.setAccessible(true);
+      method.invoke(channel);
       return;
     } catch (NoSuchMethodException e) {
       logger.warn("{}", this, e);
