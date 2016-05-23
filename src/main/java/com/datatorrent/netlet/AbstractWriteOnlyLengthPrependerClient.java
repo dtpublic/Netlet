@@ -64,7 +64,7 @@ public class AbstractWriteOnlyLengthPrependerClient extends AbstractWriteOnlyCli
           channelWrite();
           return;
         } else {
-          VarInt.write(f.length, writeBuffer);
+          remaining -= VarInt.write(f.length, writeBuffer);
           newMessage = false;
         }
       }

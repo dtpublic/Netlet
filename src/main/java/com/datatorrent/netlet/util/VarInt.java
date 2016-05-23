@@ -61,17 +61,16 @@ public class VarInt
     return i;
   }
 
-  public static void write(int value, ByteBuffer buffer)
+  public static int write(int value, ByteBuffer buffer)
   {
-    while (true) {
-      if ((value & ~0x7F) == 0) {
-        buffer.put((byte)value);
-        return;
-      } else {
-        buffer.put((byte)((value & 0x7F) | 0x80));
-        value >>>= 7;
-      }
+    int i = 1;
+    while ((value & ~0x7F) != 0) {
+      buffer.put((byte)((value & 0x7F) | 0x80));
+      value >>>= 7;
+      ++i;
     }
+    buffer.put((byte)value);
+    return i;
   }
 
   public static int getSize(int value)
