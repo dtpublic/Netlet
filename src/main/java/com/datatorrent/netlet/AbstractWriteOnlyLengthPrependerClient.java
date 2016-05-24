@@ -83,5 +83,4 @@ public class AbstractWriteOnlyLengthPrependerClient extends AbstractWriteOnlyCli
     } while ((f = sendQueue.peek()) != null);
     channelWrite();
   }
-
 }
