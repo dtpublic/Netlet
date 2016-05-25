@@ -159,7 +159,7 @@
       <plugin>
         <groupId>com.github.siom79.japicmp</groupId>
         <artifactId>japicmp-maven-plugin</artifactId>
-        <version>0.7.2</version>
+        <version>0.8.0</version>
         <configuration>
           <oldVersion>
             <dependency>
@@ -227,7 +227,7 @@
       <plugin>
         <groupId>com.github.siom79.japicmp</groupId>
         <artifactId>japicmp-maven-plugin</artifactId>
-        <version>0.6.2</version>
+        <version>0.8.0</version>
         <configuration>
           <oldVersion>
             <dependency>
@@ -503,6 +503,11 @@
   </profiles>
 
   <dependencies>
+    <dependency>
+      <groupId>org.jctools</groupId>
+      <artifactId>jctools-core</artifactId>
+      <version>1.2</version>
+    </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
