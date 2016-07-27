@@ -16,34 +16,16 @@
 package com.datatorrent.netlet;
 
 import java.nio.ByteBuffer;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
-import static java.lang.Thread.sleep;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static java.lang.Thread.sleep;
 
 public class ServerTest
 {
   public ServerTest()
   {
-  }
-
-  static class ServerImpl extends AbstractServer
-  {
-    @Override
-    public ClientListener getClientConnection(SocketChannel sc, ServerSocketChannel ssc)
-    {
-      return new EchoClient();
-    }
-
-    @Override
-    public String toString()
-    {
-      return "ServerImpl{" + '}';
-    }
-
   }
 
   static class EchoClient extends AbstractClient
