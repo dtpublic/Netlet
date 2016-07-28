@@ -213,7 +213,7 @@
         </executions>
         <configuration>
           <configLocation>netlet_checks.xml</configLocation>
-          <maxAllowedViolations>189</maxAllowedViolations>
+          <maxAllowedViolations>185</maxAllowedViolations>
           <failOnViolation>true</failOnViolation>
           <includeTestSourceDirectory>true</includeTestSourceDirectory>
           <logViolationsToConsole>${checkstyle.console}</logViolationsToConsole>

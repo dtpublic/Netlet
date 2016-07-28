@@ -24,8 +24,11 @@ import java.nio.LongBuffer;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
+import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.UnresolvedAddressException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 
@@ -35,9 +38,11 @@ import org.slf4j.LoggerFactory;
 
 import io.netty.util.ThreadDeathWatcher;
 
-import com.datatorrent.netlet.ServerTest.ServerImpl;
 import com.datatorrent.netlet.util.CircularBuffer;
 import com.datatorrent.netlet.util.Slice;
+
+import static com.datatorrent.netlet.Listener.ClientListener;
+import static com.datatorrent.netlet.Listener.ServerListener;
 
 import static java.lang.Thread.sleep;
 
@@ -139,7 +144,7 @@ public class AbstractClientTest
   @SuppressWarnings("SleepWhileInLoop")
   private void verifySendReceive(final DefaultEventLoop el, final int port) throws IOException, InterruptedException
   {
-    ServerImpl si = new ServerImpl();
+    ServerListener si = new DefaultServer(ServerTest.EchoClient.class);
     ClientImpl ci = new ClientImpl();
 
     new Thread(el).start();
@@ -451,7 +456,7 @@ public class AbstractClientTest
     final Thread thread = watchForDefaultEventLoopThread(eventLoop.start(), handled);
 
     final CountDownLatch registered = new CountDownLatch(1);
-    ServerImpl server = new ServerImpl()
+    AbstractServer server = new DefaultServer(ServerTest.EchoClient.class)
     {
       @Override
       public void registered(SelectionKey key)
@@ -460,7 +465,7 @@ public class AbstractClientTest
         registered.countDown();
       }
     };
-    eventLoop.start("localhost", 0, server);
+    eventLoop.start(null, 0, server);
     registered.await();
 
     eventLoop.connect((InetSocketAddress)server.boundAddress, client);
@@ -521,6 +526,122 @@ public class AbstractClientTest
       }
     });
     return thread;
+  }
+
+  private static class SuspendedReadClient extends AbstractClient
+  {
+    @Override
+    public ByteBuffer buffer()
+    {
+      fail();
+      return null;
+    }
+
+    @Override
+    public void read(int len)
+    {
+      fail();
+    }
+
+    @Override
+    public void registered(SelectionKey key)
+    {
+      super.registered(key);
+      assertFalse(isReadSuspended());
+      assertTrue(suspendReadIfResumed());
+      assertTrue(isReadSuspended());
+    }
+  }
+
+  private static class ResumedReadClient extends AbstractClient
+  {
+    private final ByteBuffer byteBuffer = ByteBuffer.allocateDirect(1024);
+    private int count;
+
+    @Override
+    public ByteBuffer buffer()
+    {
+      return byteBuffer;
+    }
+
+    @Override
+    public void read(int len)
+    {
+      count += len;
+      byteBuffer.clear();
+    }
+
+    @Override
+    public void registered(SelectionKey key)
+    {
+      super.registered(key);
+      assertTrue(isReadSuspended());
+      assertTrue(resumeReadIfSuspended());
+      assertFalse(isReadSuspended());
+    }
+  }
+
+  private static class SuspendedReadServer extends DefaultServer<SuspendedReadClient>
+  {
+    private final Map<SocketChannel, ClientListener> listeners = new HashMap<SocketChannel, ClientListener>();
+    private final DefaultEventLoop eventLoop;
+    private final CountDownLatch latch = new CountDownLatch(1);
+
+    private SuspendedReadServer(DefaultEventLoop eventLoop)
+    {
+      super(SuspendedReadClient.class);
+      this.eventLoop = eventLoop;
+    }
+
+    @Override
+    public ClientListener getClientConnection(SocketChannel client, ServerSocketChannel server)
+    {
+      final ClientListener listener = super.getClientConnection(client, server);
+      listeners.put(client, listener);
+      latch.countDown();
+      return listener;
+    }
+
+    private void resumeListeners()
+    {
+      for (Map.Entry<SocketChannel, ClientListener> listener : listeners.entrySet()) {
+        listener.setValue(new ResumedReadClient());
+        eventLoop.register(listener.getKey(), 0, listener.getValue());
+      }
+    }
+
+    private void waitForConnections() throws InterruptedException
+    {
+      latch.await();
+    }
+  }
+
+  @Test
+  public void suspendedReadTest() throws Exception
+  {
+    final DefaultEventLoop eventLoop = DefaultEventLoop.createEventLoop("suspendedReadTest");
+    final Thread thread = eventLoop.start();
+    final SuspendedReadServer server = new SuspendedReadServer(eventLoop);
+    eventLoop.start("localhost", 5035, server);
+    final AbstractClient client = new SuspendedReadClient();
+    eventLoop.connect(new InetSocketAddress("localhost", 5035), client);
+    server.waitForConnections();
+    byte[] data = new byte[1024];
+    int i = 0;
+    while (client.send(data)) {
+      i++;
+    }
+    logger.debug("sent {} KB of data.", i);
+    assertFalse(client.send(data));
+    server.resumeListeners();
+    sleep(2000);
+    for (Map.Entry<SocketChannel, Listener.ClientListener> listener : server.listeners.entrySet()) {
+      final ClientListener clientListener = listener.getValue();
+      assertTrue(clientListener instanceof ResumedReadClient);
+      assertEquals(i * 1024, ((ResumedReadClient)clientListener).count);
+    }
+    eventLoop.stop();
+    thread.join();
   }
 
   private static final Logger logger = LoggerFactory.getLogger(AbstractClientTest.class);
