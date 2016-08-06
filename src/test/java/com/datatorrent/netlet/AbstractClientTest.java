@@ -530,6 +530,13 @@ public class AbstractClientTest
 
   private static class SuspendedReadClient extends AbstractClient
   {
+    private final CountDownLatch latch = new CountDownLatch(1);
+
+    private void await() throws InterruptedException
+    {
+      latch.await();
+    }
+
     @Override
     public ByteBuffer buffer()
     {
@@ -550,6 +557,7 @@ public class AbstractClientTest
       assertFalse(isReadSuspended());
       assertTrue(suspendReadIfResumed());
       assertTrue(isReadSuspended());
+      latch.countDown();
     }
   }
 
@@ -602,10 +610,12 @@ public class AbstractClientTest
       return listener;
     }
 
-    private void resumeListeners()
+    private void resumeListeners() throws InterruptedException
     {
       for (Map.Entry<SocketChannel, ClientListener> listener : listeners.entrySet()) {
-        listener.setValue(new ResumedReadClient());
+        ClientListener suspendedReadClient = listener.setValue(new ResumedReadClient());
+        assertTrue(suspendedReadClient instanceof SuspendedReadClient);
+        ((SuspendedReadClient)suspendedReadClient).await();
         eventLoop.register(listener.getKey(), 0, listener.getValue());
       }
     }
@@ -634,7 +644,7 @@ public class AbstractClientTest
     logger.debug("sent {} KB of data.", i);
     assertFalse(client.send(data));
     server.resumeListeners();
-    sleep(2000);
+    sleep(1000);
     for (Map.Entry<SocketChannel, Listener.ClientListener> listener : server.listeners.entrySet()) {
       final ClientListener clientListener = listener.getValue();
       assertTrue(clientListener instanceof ResumedReadClient);
