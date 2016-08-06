@@ -15,10 +15,15 @@
  */
 package com.datatorrent.netlet;
 
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 
 import org.junit.Test;
 
+import static com.datatorrent.netlet.Listener.ClientListener;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -45,12 +50,22 @@ public class DefaultServerTest
     }
   }
 
+  public static <T extends ClientListener> InetSocketAddress startDefaultServer(DefaultEventLoop eventLoop,
+      Class<T> clientListenerClass)
+  {
+    SocketAddress socketAddress = DefaultServer.start(eventLoop, clientListenerClass);
+    assertNotNull(socketAddress);
+    assertTrue(socketAddress instanceof InetSocketAddress);
+    InetSocketAddress inetSocketAddress = (InetSocketAddress)socketAddress;
+    assertFalse(inetSocketAddress.isUnresolved());
+    return inetSocketAddress;
+  }
+
   @Test
   public void getClientConnection() throws Exception
   {
     final DefaultServer<ClientWithPrivateConstructor> server = new DefaultServer<ClientWithPrivateConstructor>(ClientWithPrivateConstructor.class);
-    final Listener.ClientListener clientConnection = server.getClientConnection(null, null);
+    final ClientListener clientConnection = server.getClientConnection(null, null);
     assertTrue(clientConnection instanceof ClientWithPrivateConstructor);
   }
-
 }

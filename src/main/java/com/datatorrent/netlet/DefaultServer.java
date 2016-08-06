@@ -17,17 +17,70 @@ package com.datatorrent.netlet;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.net.SocketAddress;
+import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.concurrent.CountDownLatch;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DefaultServer<T extends Listener.ClientListener> extends AbstractServer
+import static com.datatorrent.netlet.Listener.ClientListener;
+
+public class DefaultServer<T extends ClientListener> extends AbstractServer
 {
   private static final Logger logger = LoggerFactory.getLogger(DefaultServer.class);
 
   private final Constructor<T> constructor;
+
+  public static <T extends ClientListener> SocketAddress start(DefaultEventLoop eventLoop, Class<T> clientListenerClass)
+  {
+    return start(eventLoop, 0, clientListenerClass);
+  }
+
+  public static <T extends ClientListener> SocketAddress start(DefaultEventLoop eventLoop,
+      int port, Class<T> clientListenerClass)
+  {
+    return start(eventLoop, null, port, clientListenerClass);
+  }
+
+  public static <T extends ClientListener> SocketAddress start(DefaultEventLoop eventLoop,
+      String host, int port, Class<T> clientListenerClass)
+  {
+    final CountDownLatch registered = new CountDownLatch(1);
+
+    DefaultServer<T> server = new DefaultServer<T>(clientListenerClass)
+    {
+      @Override
+      public void registered(SelectionKey key)
+      {
+        super.registered(key);
+        registered.countDown();
+      }
+
+      @Override
+      public void handleException(Exception cce, EventLoop el)
+      {
+        super.handleException(cce, el);
+        registered.countDown();
+      }
+
+      @Override
+      public SocketAddress getServerAddress()
+      {
+        try {
+          registered.await();
+        } catch (InterruptedException e) {
+          logger.error("", e);
+          throw new RuntimeException(e);
+        }
+        return super.getServerAddress();
+      }
+    };
+    eventLoop.start(host, port, server);
+    return server.getServerAddress();
+  }
 
   public DefaultServer(Class<T> clientListenerClass)
   {
