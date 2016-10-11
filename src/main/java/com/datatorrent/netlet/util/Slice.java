@@ -39,6 +39,9 @@ public class Slice implements Serializable, Cloneable
 
   public Slice(byte[] array, int offset, int length)
   {
+    if (array != null && (offset | (length - 1) | (array.length - (offset + length))) < 0) {
+      throw new IllegalArgumentException("Invalid slice: offset=" + offset + ", length=" + length + " array.length=" + array.length);
+    }
     buffer = array;
     this.offset = offset;
     this.length = length;
@@ -48,7 +51,7 @@ public class Slice implements Serializable, Cloneable
   {
     buffer = array;
     this.offset = 0;
-    this.length = array.length;
+    this.length = array == null ? 0 : array.length;
   }
 
   @Override
@@ -56,7 +59,6 @@ public class Slice implements Serializable, Cloneable
   {
     int hash = 5;
     hash = 59 * hash + MurmurHash.hash(buffer, hash, offset, length);
-    hash = 59 * hash + this.offset;
     hash = 59 * hash + this.length;
     return hash;
   }
