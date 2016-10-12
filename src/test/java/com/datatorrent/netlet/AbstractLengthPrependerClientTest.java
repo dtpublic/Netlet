@@ -118,7 +118,10 @@ public class AbstractLengthPrependerClientTest
         @Override
         public void handleException(Exception cce, EventLoop el)
         {
-          clientDisconnects.countDown();
+          if (cce instanceof java.net.SocketException) {
+            clientDisconnects.countDown();
+            serverDisconnects.countDown();
+          }
           super.handleException(cce, el);
         }
       };

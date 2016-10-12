@@ -70,6 +70,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <checkstyle.console>false</checkstyle.console>
     <semver.skip>false</semver.skip>
+    <powermock.version>1.6.5</powermock.version>
     <benchmark.count>1000000</benchmark.count>
     <benchmark.size>256</benchmark.size>
     <benchmark.host>localhost</benchmark.host>
@@ -504,6 +505,11 @@
 
   <dependencies>
     <dependency>
+      <groupId>org.jctools</groupId>
+      <artifactId>jctools-core</artifactId>
+      <version>1.2.1</version>
+    </dependency>
+    <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
       <version>1.7.5</version>
@@ -536,6 +542,18 @@
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-math3</artifactId>
       <version>3.5</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.powermock</groupId>
+      <artifactId>powermock-module-junit4</artifactId>
+      <version>${powermock.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.powermock</groupId>
+      <artifactId>powermock-api-mockito</artifactId>
+      <version>${powermock.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
