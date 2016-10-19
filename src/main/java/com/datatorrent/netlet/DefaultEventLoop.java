@@ -19,7 +19,9 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.*;
 import java.nio.channels.spi.AbstractSelectableChannel;
-import java.util.*;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import com.datatorrent.netlet.Listener.ClientListener;
 import com.datatorrent.netlet.Listener.ServerListener;
 import com.datatorrent.netlet.util.CircularBuffer;
+import com.datatorrent.netlet.util.DTThrowable;
 
 import static java.lang.Thread.sleep;
 
@@ -58,7 +61,8 @@ public class DefaultEventLoop implements Runnable, EventLoop
   protected final CircularBuffer<Runnable> tasks;
   protected boolean alive;
   private int refCount;
-  private Thread eventThread;
+  private volatile Thread eventThread;
+  public static final long DEFAULT_START_WAIT_TIMEOUT = 5000;
 
   /**
    * @deprecated use factory method {@link #createEventLoop(String)}
@@ -75,6 +79,22 @@ public class DefaultEventLoop implements Runnable, EventLoop
 
   public synchronized Thread start()
   {
+    return start(DEFAULT_START_WAIT_TIMEOUT);
+  }
+
+  public synchronized Thread start(long waitTimeout)
+  {
+    // If event loop is restarted with a start call following a stop wait till the prior thread finishes
+    if ((refCount == 0) && (eventThread != null)) {
+      try {
+        wait(waitTimeout);
+      } catch (InterruptedException e) {
+        DTThrowable.rethrow(e);
+      }
+      if (eventThread == null) {
+        throw new RuntimeException("Timeout waiting for prior eventloop to finish");
+      }
+    }
     if (++refCount == 1) {
       eventThread = new Thread(this, id);
       eventThread.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler()
@@ -160,7 +180,10 @@ public class DefaultEventLoop implements Runnable, EventLoop
         alive = false;
         logger.warn("Unexpected termination of {}", this);
       }
-      eventThread = null;
+      synchronized (this) {
+        eventThread = null;
+        notifyAll();
+      }
     }
   }
 
