@@ -1,5 +1,22 @@
 # Change Log
 
+## [1.3.0](https://github.com/DataTorrent/Netlet/tree/v1.3.0) (2016-11-15)
+[Full Changelog](https://github.com/DataTorrent/Netlet/compare/v1.2.1...v1.3.0)
+
+**Fixes**
+- Fix for race condition between SuspendedReadClient and ResumedReadClient registration in the AbstractClient unit test.
+- Removed offset from the Slice hash code computation.  
+
+**Enhancements**
+
+- DefaultServer implementation of the AbstractServer.
+- AbstractClientListener implementation of the ClientListener interface with the ability to shutdown socket channel input or output.
+- Read and write only simplex clients. 
+
+**Integration**
+
+- Upgraded japicmp to 0.8.1.
+
 ## [1.2.1](https://github.com/DataTorrent/Netlet/tree/v1.2.1) (2016-04-12)
 [Full Changelog](https://github.com/DataTorrent/Netlet/compare/v1.2.0...v1.2.1)
 
