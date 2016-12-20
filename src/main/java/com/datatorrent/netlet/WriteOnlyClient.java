@@ -127,7 +127,7 @@ public class WriteOnlyClient extends AbstractClientListener
           @Override
           public boolean offer(Slice f)
           {
-            throw new RuntimeException("Client " + this + " does not accept new data.");
+            throw new RuntimeException(String.format("Client %s does not accept new data.", WriteOnlyClient.this));
           }
         };
       }
