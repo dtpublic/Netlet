@@ -22,6 +22,10 @@ import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.datatorrent.netlet.util.CircularBuffer.MAX_SIZE;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+
 public class CircularBufferTest
 {
   private static final Logger logger = LoggerFactory.getLogger(CircularBufferTest.class);
@@ -49,6 +53,54 @@ public class CircularBufferTest
   @After
   public void tearDown()
   {
+  }
+
+  /**
+   * Test larger than allowed size of buffer; we expect an exception
+   */
+  @Test(expected = IllegalArgumentException.class)
+  public void testLargeSize()
+  {
+    CircularBuffer<Integer> instance = new CircularBuffer<Integer>(1 + MAX_SIZE);
+  }
+
+  // helper routine to test that argument works and yields the same size
+  // as the old method
+  //
+  private void testSize(final int size)
+  {
+    final CircularBuffer<Integer> instance = new CircularBuffer<Integer>(size);
+
+    // get size the old way and check that it matches
+    int i = 1;
+    while (i < size) {
+      i <<= 1;
+    }
+    assertEquals(i, instance.capacity());
+
+    // check that the instance is actually functional
+    instance.add(99);
+    final int v = instance.poll();
+    assertEquals(99, v);
+    assertNull(instance.peek());
+  }
+
+ /**
+  * Test values of the form 2**k, (2**k - 1) and (2**k + 1) as the size of the buffer
+  */
+  @Test
+  public void testSize()
+  {
+    testSize(0);
+    testSize(1);
+    testSize(2);
+
+    final int max_size = MAX_SIZE >> 3;      // MAX_SIZE runs out of memory
+    for (int size = 4; size < max_size; size <<= 1) {
+      testSize(size - 1);
+      testSize(size);
+      testSize(size + 1);
+    }
   }
 
   /**

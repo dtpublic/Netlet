@@ -34,11 +34,15 @@ import static java.lang.Thread.sleep;
  */
 public class CircularBuffer<T> implements UnsafeBlockingQueue<T>
 {
+  // largest supported buffer size
+  static final int MAX_SIZE = 1 << 30;
+
   private final T[] buffer;
   private final int buffermask;
   private final int spinMillis;
   protected volatile long tail;
   protected volatile long head;
+
 
   /**
    *
@@ -52,14 +56,19 @@ public class CircularBuffer<T> implements UnsafeBlockingQueue<T>
   @SuppressWarnings("unchecked")
   public CircularBuffer(int n, int spin)
   {
-    int i = 1;
-    while (i < n) {
-      i <<= 1;
+    if (n < 0) {
+      throw new IllegalArgumentException(String.format("Error: value cannot be negative: %d", n));
+    }
+    if (n > MAX_SIZE) {
+      throw new IllegalArgumentException(String.format("Error: value too large: %d", n));
     }
 
-    buffer = (T[])new Object[i];
-    buffermask = i - 1;
+    final int size = (0 == n) ? 1
+        : (0 == (n & (n - 1))) ? n
+        : (1 << (32 - Integer.numberOfLeadingZeros(n)));
 
+    buffer = (T[])new Object[size];
+    buffermask = size - 1;
     spinMillis = spin;
   }
 
