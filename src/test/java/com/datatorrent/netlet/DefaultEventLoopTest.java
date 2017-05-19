@@ -300,4 +300,89 @@ public class DefaultEventLoopTest
     assertFalse(client2.isConnected());
   }
 
+  @Test
+  public void startStop() throws Exception
+  {
+    assertTrue(defaultEventLoop.isActive());
+    assertEquals(thread, defaultEventLoop.start());
+    defaultEventLoop.stop();
+    assertTrue(defaultEventLoop.isActive());
+    defaultEventLoop.stop();
+    thread.join();
+    assertFalse(defaultEventLoop.isActive());
+  }
+
+  @Test
+  public void startWithExtraStop() throws Exception
+  {
+    assertTrue(defaultEventLoop.isActive());
+    defaultEventLoop.stop();
+    thread.join();
+    assertFalse(defaultEventLoop.isActive());
+    try {
+      defaultEventLoop.stop();
+      fail();
+    } catch (IllegalStateException e) {
+      thread = defaultEventLoop.start();
+      assertTrue(defaultEventLoop.isActive());
+      defaultEventLoop.stop();
+      thread.join();
+      assertFalse(defaultEventLoop.isActive());
+    }
+  }
+
+  @Test
+  public void startKilledEventLoop() throws Exception
+  {
+    assertTrue(defaultEventLoop.isActive());
+    final CountDownLatch latch = new CountDownLatch(1);
+    defaultEventLoop.submit(new Runnable()
+    {
+      @Override
+      public void run()
+      {
+        try {
+          latch.await();
+        } catch (InterruptedException e) {
+          throw new RuntimeException(e);
+        }
+        throw new RuntimeException();
+      }
+    });
+    defaultEventLoop.stop();
+    latch.countDown();
+    thread.join();
+    assertFalse(defaultEventLoop.isActive());
+    thread = defaultEventLoop.start();
+    assertTrue(defaultEventLoop.isActive());
+    defaultEventLoop.submit(new Runnable()
+    {
+      @Override
+      public void run()
+      {
+        throw new RuntimeException();
+      }
+    });
+    thread.join();
+    assertFalse(defaultEventLoop.isActive());
+    defaultEventLoop.stop();
+    thread = defaultEventLoop.start();
+    assertTrue(defaultEventLoop.isActive());
+    defaultEventLoop.submit(new Runnable()
+    {
+      @Override
+      public void run()
+      {
+        throw new RuntimeException();
+      }
+    });
+    thread.join();
+    assertFalse(defaultEventLoop.isActive());
+    try {
+      defaultEventLoop.start();
+      fail();
+    } catch (IllegalStateException e) {
+      assertFalse(defaultEventLoop.isActive());
+    }
+  }
 }

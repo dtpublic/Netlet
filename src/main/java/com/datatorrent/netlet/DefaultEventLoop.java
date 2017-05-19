@@ -75,6 +75,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
 
   public synchronized Thread start()
   {
+    logger.debug("Starting {}", this);
     if (++refCount == 1) {
       eventThread = new Thread(this, id);
       eventThread.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler()
@@ -86,19 +87,30 @@ public class DefaultEventLoop implements Runnable, EventLoop
         }
       });
       eventThread.start();
+    } else if (!isActive()) {
+      throw new IllegalStateException("Event loop thread is not alive");
     }
     return eventThread;
   }
 
   public void stop()
   {
+    logger.debug("Stopping {}", this);
+    synchronized (this) {
+      if (refCount == 0) {
+        throw new IllegalStateException("Reference count is zero");
+      }
+      if (--refCount > 0 || !isActive()) {
+        return;
+      }
+    }
     submit(new Runnable()
     {
       @Override
       public void run()
       {
         synchronized (DefaultEventLoop.this) {
-          if (--refCount == 0) {
+          if (refCount == 0) {
             // TODO: replace below implementation with disconnectAllKeysAndShutdown()
             for (SelectionKey selectionKey : selector.keys()) {
               if (selectionKey.isValid()) {
@@ -141,8 +153,11 @@ public class DefaultEventLoop implements Runnable, EventLoop
   @Override
   public void run()
   {
+    boolean selfIncrement = false;
     synchronized (this) {
+      logger.debug("Running {}", this);
       if (eventThread == null) {
+        selfIncrement = true;
         refCount++;
         eventThread = Thread.currentThread();
       } else if (eventThread != Thread.currentThread()) {
@@ -160,7 +175,12 @@ public class DefaultEventLoop implements Runnable, EventLoop
         alive = false;
         logger.warn("Unexpected termination of {}", this);
       }
+      if (selfIncrement) {
+        refCount--;
+      }
+      tasks.clear();
       eventThread = null;
+      logger.debug("Stopped {}", this);
     }
   }
 
@@ -736,7 +756,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
   @Override
   public String toString()
   {
-    return "{id=" + id + ", " + tasks + '}';
+    return "{id=" + id + ", active=" + isActive() + ", refCount=" + refCount + ", " + tasks + '}';
   }
 
   private static final Logger logger = LoggerFactory.getLogger(DefaultEventLoop.class);
