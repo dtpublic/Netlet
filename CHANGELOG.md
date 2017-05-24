@@ -1,5 +1,13 @@
 # Change Log
 
+## [1.3.1](https://github.com/DataTorrent/Netlet/tree/v1.3.1) (2017-05-24)
+[Full Changelog](https://github.com/DataTorrent/Netlet/compare/v1.3.0...v1.3.1)
+
+**Fixes**
+- Fix message in the exception raised to indicate that WriteOnlyClient does not accept new data.
+- Fix infinite loop and use faster size computation
+- DefaultEventLoop.stop() should immediately decrement refCount and schedule task execution only if refCount drops to 0
+
 ## [1.3.0](https://github.com/DataTorrent/Netlet/tree/v1.3.0) (2016-11-15)
 [Full Changelog](https://github.com/DataTorrent/Netlet/compare/v1.2.1...v1.3.0)
 
