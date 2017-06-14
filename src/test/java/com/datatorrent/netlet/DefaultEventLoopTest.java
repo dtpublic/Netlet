@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -122,6 +123,12 @@ public class DefaultEventLoopTest
     count = new AtomicInteger();
   }
 
+  @After
+  public void assertNotActive() throws InterruptedException
+  {
+    assertFalse("Default event loop " + defaultEventLoop + " not active", defaultEventLoop.isActive());
+  }
+
   @Test
   public void testFullTasksCircularBufferHandlerSameThread() throws InterruptedException
   {
@@ -161,7 +168,6 @@ public class DefaultEventLoopTest
     });
     thread.join();
     assertEquals(defaultEventLoop.tasks.capacity(), count.get());
-
   }
 
   @Test
@@ -309,7 +315,6 @@ public class DefaultEventLoopTest
     assertTrue(defaultEventLoop.isActive());
     defaultEventLoop.stop();
     thread.join();
-    assertFalse(defaultEventLoop.isActive());
   }
 
   @Test
@@ -323,15 +328,14 @@ public class DefaultEventLoopTest
       defaultEventLoop.stop();
       fail();
     } catch (IllegalStateException e) {
-      thread = defaultEventLoop.start();
-      assertTrue(defaultEventLoop.isActive());
-      defaultEventLoop.stop();
-      thread.join();
-      assertFalse(defaultEventLoop.isActive());
     }
+    thread = defaultEventLoop.start();
+    assertTrue(defaultEventLoop.isActive());
+    defaultEventLoop.stop();
+    thread.join();
   }
 
-  @Test
+  @Test(timeout = 1000)
   public void startKilledEventLoop() throws Exception
   {
     assertTrue(defaultEventLoop.isActive());
@@ -378,11 +382,10 @@ public class DefaultEventLoopTest
     });
     thread.join();
     assertFalse(defaultEventLoop.isActive());
-    try {
-      defaultEventLoop.start();
-      fail();
-    } catch (IllegalStateException e) {
-      assertFalse(defaultEventLoop.isActive());
-    }
+    thread = defaultEventLoop.start();
+    assertTrue(defaultEventLoop.isActive());
+    defaultEventLoop.stop();
+    defaultEventLoop.stop();
+    thread.join();
   }
 }
