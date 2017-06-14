@@ -47,7 +47,7 @@ public abstract class AbstractServer implements ServerListener
   @Override
   public void handleException(Exception cce, EventLoop el)
   {
-    logger.error("Exception in event loop {}", el, cce);
+    logger.error("Exception in the event loop {} on the attachment {}", el, this, cce);
   }
 
   public SocketAddress getServerAddress()
