@@ -76,8 +76,13 @@ public class DefaultEventLoop implements Runnable, EventLoop
   public synchronized Thread start()
   {
     logger.debug("Starting {}", this);
-    if (++refCount == 1) {
+    refCount++;
+    if (eventThread == null || !eventThread.isAlive()) {
+      if (refCount > 1) {
+        logger.warn("Restarting previously terminated event loop {} thread {}", this, eventThread);
+      }
       eventThread = new Thread(this, id);
+      eventThread.setDaemon(true);
       eventThread.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler()
       {
         @Override
@@ -87,8 +92,6 @@ public class DefaultEventLoop implements Runnable, EventLoop
         }
       });
       eventThread.start();
-    } else if (!isActive()) {
-      throw new IllegalStateException("Event loop thread is not alive");
     }
     return eventThread;
   }
@@ -144,7 +147,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
       @Override
       public String toString()
       {
-        return String.format("stop{%d}", refCount);
+        return String.format("stop EventLoop %s", DefaultEventLoop.this);
       }
 
     });
@@ -153,11 +156,9 @@ public class DefaultEventLoop implements Runnable, EventLoop
   @Override
   public void run()
   {
-    boolean selfIncrement = false;
     synchronized (this) {
       logger.debug("Running {}", this);
       if (eventThread == null) {
-        selfIncrement = true;
         refCount++;
         eventThread = Thread.currentThread();
       } else if (eventThread != Thread.currentThread()) {
@@ -175,11 +176,14 @@ public class DefaultEventLoop implements Runnable, EventLoop
         alive = false;
         logger.warn("Unexpected termination of {}", this);
       }
-      if (selfIncrement) {
-        refCount--;
+      synchronized (this) {
+        synchronized (tasks) {
+          for (Runnable r = tasks.poll(); r != null; r = tasks.poll()) {
+            logger.warn("Task {} won't be executed", r);
+          }
+        }
+        eventThread = null;
       }
-      tasks.clear();
-      eventThread = null;
       logger.debug("Stopped {}", this);
     }
   }
@@ -430,8 +434,10 @@ public class DefaultEventLoop implements Runnable, EventLoop
     //logger.debug("{}.{}.{}", currentThread, r, eventThread);
     if (eventThread == currentThread && tasks.isEmpty()) {
       r.run();
-    }
-    else {
+    } else {
+      if (!isActive()) {
+        logger.warn("Event loop {} is not active", this);
+      }
       int sleepMillis = 0;
       while (true) {
         synchronized (tasks) {
@@ -748,7 +754,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
     });
   }
 
-  public boolean isActive()
+  public synchronized boolean isActive()
   {
     return eventThread != null && eventThread.isAlive();
   }
