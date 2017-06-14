@@ -331,7 +331,7 @@ public class DefaultEventLoopTest
     }
   }
 
-  @Test
+  @Test(timeout = 1000)
   public void startKilledEventLoop() throws Exception
   {
     assertTrue(defaultEventLoop.isActive());
@@ -378,11 +378,7 @@ public class DefaultEventLoopTest
     });
     thread.join();
     assertFalse(defaultEventLoop.isActive());
-    try {
-      defaultEventLoop.start();
-      fail();
-    } catch (IllegalStateException e) {
-      assertFalse(defaultEventLoop.isActive());
-    }
+    defaultEventLoop.start();
+    assertTrue(defaultEventLoop.isActive());
   }
 }
