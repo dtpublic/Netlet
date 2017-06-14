@@ -76,8 +76,12 @@ public class DefaultEventLoop implements Runnable, EventLoop
   public synchronized Thread start()
   {
     logger.debug("Starting {}", this);
-    if (++refCount == 1) {
+    if (++refCount > 1 && !isActive()) {
+      logger.warn("Restarting previously terminated event loop {}", this);
+    }
+    if (eventThread == null) {
       eventThread = new Thread(this, id);
+      eventThread.setDaemon(true);
       eventThread.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler()
       {
         @Override
@@ -86,9 +90,9 @@ public class DefaultEventLoop implements Runnable, EventLoop
           logger.error("Exception in thread {}", t, e);
         }
       });
+    }
+    if (!eventThread.isAlive()) {
       eventThread.start();
-    } else if (!isActive()) {
-      throw new IllegalStateException("Event loop thread is not alive");
     }
     return eventThread;
   }
@@ -430,8 +434,10 @@ public class DefaultEventLoop implements Runnable, EventLoop
     //logger.debug("{}.{}.{}", currentThread, r, eventThread);
     if (eventThread == currentThread && tasks.isEmpty()) {
       r.run();
-    }
-    else {
+    } else {
+      if (!isActive()) {
+        logger.warn("Event loop {} is not active", this);
+      }
       int sleepMillis = 0;
       while (true) {
         synchronized (tasks) {
@@ -748,7 +754,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
     });
   }
 
-  public boolean isActive()
+  public synchronized boolean isActive()
   {
     return eventThread != null && eventThread.isAlive();
   }
