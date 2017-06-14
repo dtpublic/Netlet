@@ -756,7 +756,15 @@ public class DefaultEventLoop implements Runnable, EventLoop
   @Override
   public String toString()
   {
-    return "{id=" + id + ", active=" + isActive() + ", refCount=" + refCount + ", " + tasks + '}';
+    return new StringBuilder(getClass().getSimpleName())
+        .append('@')
+        .append(Integer.toHexString(System.identityHashCode(this)))
+        .append('{')
+        .append("id=").append(id)
+        .append(", active=").append(isActive())
+        .append(", refCount=").append(refCount)
+        .append(", ").append(tasks)
+        .append('}').toString();
   }
 
   private static final Logger logger = LoggerFactory.getLogger(DefaultEventLoop.class);

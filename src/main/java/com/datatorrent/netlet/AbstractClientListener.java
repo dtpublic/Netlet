@@ -222,13 +222,21 @@ public abstract class AbstractClientListener implements ClientListener
   @Override
   public void handleException(Exception cce, EventLoop el)
   {
-    logger.error("Exception in event loop {}", el, cce);
+    logger.error("Exception in the {} on the {}", el, this, cce);
   }
 
   @Override
   public String toString()
   {
-    return getClass().getName() + '@' + Integer.toHexString(hashCode()) + "{key=" + key.toString() +
-        (key.isValid() ? ", channel=" + key.channel() + ", interestOps=" + key.interestOps() : "") + "}";
+    StringBuilder sb = new StringBuilder(getClass().getName())
+        .append('@')
+        .append(Integer.toHexString(System.identityHashCode(this)))
+        .append('{')
+        .append("key=").append(key);
+    if (key.isValid()) {
+      sb.append(", channel=").append(key.channel())
+          .append(", interestOps=").append(key.interestOps());
+    }
+    return sb.append('}').toString();
   }
 }
