@@ -1,9 +1,28 @@
 # Change Log
 
+## [1.3.2](https://github.com/DataTorrent/Netlet/tree/v1.3.2) (2017-06-21)
+[Full Changelog](https://github.com/DataTorrent/Netlet/compare/v1.3.1...v1.3.2)
+
+**Fixes**
+
+- Prevent scenario where multiple event loop threads may be active at the same time
+
+**Enhancements**
+
+- Changed event loop thread priority
+- Mark event loop thread as daemon thread
+- Introduce timeout into DefaultEventLoopTest.startKilledEventLoop() unit test
+- Add listener details to the handleException error message
+
+**Integration**
+
+- added IntelliJ and Mac OS X files to the ignored list
+
 ## [1.3.1](https://github.com/DataTorrent/Netlet/tree/v1.3.1) (2017-05-24)
 [Full Changelog](https://github.com/DataTorrent/Netlet/compare/v1.3.0...v1.3.1)
 
 **Fixes**
+
 - Fix message in the exception raised to indicate that WriteOnlyClient does not accept new data.
 - Fix infinite loop and use faster size computation
 - DefaultEventLoop.stop() should immediately decrement refCount and schedule task execution only if refCount drops to 0
@@ -12,6 +31,7 @@
 [Full Changelog](https://github.com/DataTorrent/Netlet/compare/v1.2.1...v1.3.0)
 
 **Fixes**
+
 - Fix for race condition between SuspendedReadClient and ResumedReadClient registration in the AbstractClient unit test.
 - Removed offset from the Slice hash code computation.  
 
