@@ -1,4 +1,4 @@
-#Netlet#
+# Netlet
 
 Netlet is a java NIO abstraction for TCP Client-Server applications. It simplifies the application code to something
 like:
@@ -20,7 +20,9 @@ el.stop(si); /* stop listening */
 el.stop(); /* stop the driver */
 ```
 
-netlet is available in the Maven Central Repository:
+netlet is available in the Maven Central Repository: 
+
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.datatorrent/netlet/badge.svg)](http://mvnrepository.com/artifact/com.datatorrent/netlet)
 
 ```
   <dependency>
@@ -30,7 +32,7 @@ netlet is available in the Maven Central Repository:
   </dependency>
 ```
 
-##Motivation##
+## Motivation
 
 In late 2012, after writing the first version of Apex network buffer server using Netty-4, I realized that the network
 throughput had touched ceiling while it was using just 25% of the NIC capacity. More attempts to tune the peformance
@@ -47,7 +49,7 @@ was LGPL. Since we wanted to release Apex under Apache, it was a no go.
 Hence I decided to write my own NIO Abstaction and later released it as Netlet. With netlet, I was able to refactor the
 code that I wrote for Netty and was able to push the performance to more than 500% compared to that with Netty.
 
-##Features##
+## Features
 
 * Very fast - does away with many inefficiencies of typical networking libraries.
 * Better abstraction of NIO compared to a few other well known libraries, results in fewer lines of application code
@@ -55,24 +57,24 @@ code that I wrote for Netty and was able to push the performance to more than 50
 * Debugging friendly - fewer classes, fewer threads, smaller footprint
 * Explicit thread management - does away with need for unnecessary synchronization
 
-##Drawbacks##
+## Drawbacks
 
 * Support only TCP/IP - UDP/Multicast planned.
 * Limited in number of application protocols supported - Provides only LengthPrepended protocol out of the box.
 * Explicit thread management - see above.
 
-##Examples##
+## Examples
 
 Various tests are included in the test directory. There are 2 types of tests. Unit Tests and Performance Tests.
 
-###Unit Tests###
+### Unit Tests
 
 Unit Tests provide a sample client/server code and test specific feature per unit test. Those can be executed as
 ```
 mvn test
 ```
 
-###Performance Tests###
+### Performance Tests
 
 Performance tests were written to compare the performance of Netlet to that of Netty. 
 
@@ -94,15 +96,15 @@ mvn exec:exec -Dbenchmark=netlet.server
 mvn exec:exec -Dbenchmark=netty.client
 ```
 
-##Downloads##
+## Download
 
 You can download the latest version from the [release page](https://github.com/DataTorrent/Netlet/releases) or directly from the [maven central repository](http://search.maven.org/#search%7Cga%7C1%7Ca%3A%22netlet%22).
 
-##Development##
+## Development
 
 * ![Build Status](https://travis-ci.org/DataTorrent/Netlet.svg?branch=master)
 
-###Reports###
+### Reports
 
 Use the maven site plugin (`mvn site`) to generate the following reports:
  * findbugs
@@ -110,7 +112,7 @@ Use the maven site plugin (`mvn site`) to generate the following reports:
  * japicmp
  * cobertura test coverage
 
-###Release###
+### Release
 
 This is the release procedure:
 * Increment version in pom.xml
@@ -122,7 +124,7 @@ mvn clean deploy -Prelease -Dgpg.passphrase=passphrase
   * Download released artifact from staging repository.
   * Close and release staging repository if sanity checks are successful.
 
-##Contributions
+## Contributions
 
 Pull requests are welcome, but please follow these rules:
 
@@ -131,7 +133,7 @@ Pull requests are welcome, but please follow these rules:
 * Name classes/methods/fields expressively.
 * Fork the repo and create a pull request (see [GitHub Flow](https://guides.github.com/introduction/flow/index.html)).
 
-##Related work##
+## Related work
 
 The following projects have related goals:
 
