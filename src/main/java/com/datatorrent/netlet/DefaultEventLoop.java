@@ -28,6 +28,7 @@ import com.datatorrent.netlet.Listener.ClientListener;
 import com.datatorrent.netlet.Listener.ServerListener;
 import com.datatorrent.netlet.util.CircularBuffer;
 
+import static java.lang.Thread.MAX_PRIORITY;
 import static java.lang.Thread.sleep;
 
 /**
@@ -39,6 +40,7 @@ import static java.lang.Thread.sleep;
 public class DefaultEventLoop implements Runnable, EventLoop
 {
   public static final String eventLoopPropertyName = "com.datatorrent.netlet.disableOptimizedEventLoop";
+  private static final int priority = Integer.getInteger("com.datatorrent.netlet.thread.priority", MAX_PRIORITY);
   private static final int SLEEP_MILLIS = 5;
 
   public static DefaultEventLoop createEventLoop(final String id) throws IOException
@@ -82,6 +84,7 @@ public class DefaultEventLoop implements Runnable, EventLoop
         logger.warn("Restarting previously terminated event loop {} thread {}", this, eventThread);
       }
       eventThread = new Thread(this, id);
+      eventThread.setPriority(priority);
       eventThread.setDaemon(true);
       eventThread.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler()
       {
